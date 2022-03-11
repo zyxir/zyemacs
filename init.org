@@ -330,14 +330,13 @@ Register utilities have not been configured.
 #+begin_src elisp
   (setup (:pkg embark)
     (general-define-key
-     "C-," 'embark-act
-     "C-." 'embark-dwim
+     "C-." 'embark-act
      "<help> B" 'embark-bindings)
     (:when-loaded
       (add-to-list 'display-buffer-alist
-		   '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-		     nil
-		     (window-parameters (mode-line-format . none))))))
+                   '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                     nil
+                     (window-parameters (mode-line-format . none))))))
 #+end_src
 
 ** Emacs Server
@@ -457,11 +456,11 @@ These are temporary settings.
 #+begin_src elisp
   (setup (:pkg rime)
     (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
-	  default-input-method "rime"
-	  rime-show-candidate 'posframe))
+          default-input-method "rime"
+          rime-show-candidate 'posframe))
 
   ;; Make the cursor orange when IM is active
-  (defvar zy/im-cursor-color "#008000"
+  (defvar zy/im-cursor-color "#f68a06"
       "Default cursor color if an input method is active.")
   (defvar zy/default-cursor-color (frame-parameter nil 'cursor-color)
     "Default text cursor color.")
@@ -469,8 +468,8 @@ These are temporary settings.
     "Set cursor color depending IM state."
     (interactive)
     (set-cursor-color (if current-input-method
-			  zy/im-cursor-color
-			zy/default-cursor-color)))
+                          zy/im-cursor-color
+                        zy/default-cursor-color)))
   (add-hook 'post-command-hook 'zy/change-cursor-color-on-im)
 #+end_src
 
