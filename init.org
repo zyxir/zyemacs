@@ -340,17 +340,6 @@ Register utilities have not been configured.
 		     (window-parameters (mode-line-format . none))))))
 #+end_src
 
-** Magit
-
-#+begin_src elisp
-  (setup (:pkg magit)
-    (:needs "git")
-    (general-define-key
-     :keymaps 'ctl-x-map
-     "g" 'magit-status
-     "M-g" 'magit-dispatch))
-#+end_src
-
 ** Emacs Server
 
 #+begin_src elisp
@@ -392,6 +381,26 @@ Register utilities have not been configured.
   (setup (:pkg super-save)
     (setq super-save-auto-save-when-idle t)
     (super-save-mode +1))
+#+end_src
+
+** Avy
+
+#+begin_src elisp
+  (setup (:pkg avy)
+    (general-define-key
+     "M-r" 'avy-goto-char
+     "M-t" 'avy-goto-char-timer))
+#+end_src
+
+** Magit
+
+#+begin_src elisp
+  (setup (:pkg magit)
+    (:needs "git")
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "g" 'magit-status
+     "M-g" 'magit-dispatch))
 #+end_src
 
 ** Restart-Emacs
