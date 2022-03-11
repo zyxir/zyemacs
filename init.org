@@ -505,34 +505,34 @@ These are temporary settings.
 
   (setq
    org-agenda-files `(,zy/gtd-inbox-path
-		      ,zy/gtd-gtd-path
-		      ,zy/gtd-someday-path)
+                      ,zy/gtd-gtd-path
+                      ,zy/gtd-someday-path)
    org-capture-templates `(("i" "inbox" entry
-			    (file+headline ,zy/gtd-inbox-path "inbox")
-			    "* TODO [#B] %U %i%?"
-			    :empty-lines 1)
-			   ("s" "someday" entry
-			    (file+headline ,zy/gtd-someday-path "someday")
-			    "* TODO [#C] %U %i%?"
-			    :empty-lines 1)
-			   ("t" "GTD" entry
-			    (file+olp+datetree ,zy/gtd-gtd-path)
-			    "* TODO [#B] %U %i%?"
-			    :empty-lines 1))
+                            (file+headline ,zy/gtd-inbox-path "inbox")
+                            "* TODO [#B] %U %i%?"
+                            :empty-lines 1)
+                           ("s" "someday" entry
+                            (file+headline ,zy/gtd-someday-path "someday")
+                            "* TODO [#C] %U %i%?"
+                            :empty-lines 1)
+                           ("t" "GTD" entry
+                            (file+olp+datetree ,zy/gtd-gtd-path)
+                            "* TODO [#B] %U %i%?"
+                            :empty-lines 1))
    org-refile-targets `((,zy/gtd-gtd-path :maxlevel . 3)
-			(,zy/gtd-someday-path :level . 1))
+                        (,zy/gtd-someday-path :level . 1))
    org-todo-keywords '((sequence "TODO(t)"
-				 "IN PROCESS(i)"
-				 "POSTPONED(p)"
-				 "|"
-				 "DONE(d)")
-		       (sequence "|"
-				 "CANCELED(c)"))
-   org-todo-keywords-faces '(("TODO" . (:foreground "#B71C1C" :weight bold))
-			     ("IN PROCESS" . (:foreground "#8BC34A" :weight bold))
-			     ("POSTPONED" . (:foreground "#F57C00" :weight bold))
-			     ("DONE" . (:foreground "#33691E" :weight bold))
-			     ("CANCELED" . (:foreground "#757575" :weight bold))))
+                                 "IN PROCESS(i)"
+                                 "POSTPONED(p)"
+                                 "|"
+                                 "DONE(d)")
+                       (sequence "|"
+                                 "CANCELED(c)"))
+   org-todo-keyword-faces '(("TODO" . (:foreground "#B71C1C" :weight bold))
+                            ("IN PROCESS" . (:foreground "#8BC34A" :weight bold))
+                            ("POSTPONED" . (:foreground "#F57C00" :weight bold))
+                            ("DONE" . (:foreground "#33691E" :weight bold))
+                            ("CANCELED" . (:foreground "#757575" :weight bold))))
 
   (general-define-key
    :keymaps 'zy/leader-map
