@@ -355,9 +355,11 @@ Register utilities have not been configured.
    disabled-command-function nil
    fill-column 80
    frame-title-format '("" "emacs" " [%b]")
+   system-time-locale "C"
    make-backup-files nil
    auto-save-default nil
-   system-time-locale "C")
+   inhibit-compacting-font-caches t
+   word-wrap-by-category t)
 #+end_src
 
 ** Native Modes
@@ -366,9 +368,11 @@ Register utilities have not been configured.
   (delete-selection-mode +1)
   (global-hl-line-mode +1)
   (global-display-line-numbers-mode +1)
+  (global-subword-mode +1)
   (recentf-mode +1)
   (setup save-place
     (:hook-into after-init-hook))
+  (load "kinsoku.el")
 #+end_src
 
 ** Super Save
@@ -459,13 +463,13 @@ These are temporary settings.
 #+begin_src elisp
   (setup org
     (setq org-attach-id-dir "_org-att"
-	  org-log-done 'time
-	  org-src-window-setup 'current-window)
+          org-log-done 'time
+          org-src-window-setup 'current-window
+          org-startup-truncated nil)
     (add-hook 'org-mode-hook
-	      (lambda ()
-		(display-line-numbers-mode -1)
-		(org-indent-mode +1)
-		(visual-line-mode +1))))
+              (lambda ()
+                (display-line-numbers-mode -1)
+                (org-indent-mode +1))))
 #+end_src
 
 *** GTD System
