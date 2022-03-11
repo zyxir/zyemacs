@@ -1,0 +1,28 @@
+#+title: ZyEmacs
+
+My Emacs configuration focused on being
+
+- *Minimal*. I practise [[https://en.wikipedia.org/wiki/Minimalism][minimalism]] in my daily life, as well as in Emacs.
+- *Manageable*. Advanced approaches are used to minimize the cost of managing the configuration.
+- *Functional*. This configuration satisfies most of my daily needs. See [[*Usage]].
+
+The whole config is inside [[./init.org][init.org]]. You can also read the [[file:CHANGELOG.org][changelog]].
+
+* Usage
+
+I use Emacs in WSL (Windows Subsystem for Linux) for
+
+- Using [[https://orgmode.org/][org-mode]], [[https://www.orgroam.com/][org-roam]], [[https://github.com/bastibe/org-journal][org-journal]], and other org utilities.
+- Writing documents in: LaTeX, markdown, org.
+- Coding in: Python.
+
+* Install
+
+* Links
+
+This configuration is inspired by:
+
+- [[https://github.com/nowislewis/nowisemacs][Nowisemacs]]
+- [[https://config.daviwil.com/emacs][David Wilson's Emacs Configuration]]
+- [[https://github.com/redguardtoo/emacs.d][redguardtoo/emacs.d]]
+- [[https://leanpub.com/lit-config/read][Literate Configuration]] by Diego Zamboni

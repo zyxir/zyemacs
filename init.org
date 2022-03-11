@@ -1,0 +1,564 @@
+#+title: init.org
+#+property: header-args:elisp :tangle ~/.emacs.d/init.el
+
+* Startup
+
+** Early Init
+
+See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html][The Early Init File]].
+
+#+begin_src elisp :tangle ~/.emacs.d/early-init.el
+  ;; -*- lexical-binding: t; -*-
+  (setq default-frame-alist
+	'((width . 86)
+	  (height . 40)))
+  (setq
+   frame-inhibit-implied-resize t
+   package-enable-at-startup nil
+   inhibit-startup-message t)
+#+end_src
+
+** Adjust GC
+
+Prohibit GC at startup, and adjust the threshold thereafter.
+
+#+begin_src elisp
+  (setq gc-cons-threshold most-positive-fixnum
+	gc-cons-percentage 0.5)
+  (add-hook 'emacs-startup-hook
+	    (lambda ()
+	      (setq gc-cons-threshold (* 32 1024 1024)
+		    gc-cons-percentage 0.1)))
+#+end_src
+
+** Constants
+
+#+begin_src elisp
+  (defconst *win64* (eq system-type 'windows-nt)
+    "If Emacs is run on Windows.")
+  (defconst *linux* (or (eq system-type 'gnu/linux)
+		      (eq system-type 'linux))
+    "If Emacs is run on Linux.")
+#+end_src
+
+** Load ~custom.el~
+
+#+begin_src elisp
+  (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+  (when (file-exists-p custom-file)
+    (load custom-file))
+#+end_src
+
+** Load libraries
+
+#+begin_src elisp
+  (require 'cl-lib)
+  (require 'cl-extra)
+#+end_src
+
+** Lisp Path
+
+#+begin_src elisp
+  (let ((lisp-directories
+	 '("lisp" "site-lisp")))
+    (dolist (dir lisp-directories)
+      (setq dir (expand-file-name dir user-emacs-directory))
+      (when (file-directory-p dir)
+	(let ((default-directory dir))
+	  (normal-top-level-add-subdirs-to-load-path)))))
+#+end_src
+
+** User Paths
+
+Zybox is the collection of my personal files.
+
+#+begin_src elisp
+  (defvar zy/zybox-path nil
+    "The path of Zybox, the collection of all my files.
+
+  This value should be manually set in custom.el, as it is
+  different on different machines.")
+
+  (defun zy:file-directory-ret (path)
+    (when (file-directory-p path)
+      path))
+
+  (unless zy/zybox-path
+    (let* ((zybox-possible-locs-win64
+	    '("C:\\Zybox"
+	      "C:\\Users\\zyxir\\Zybox"
+	      "C:\\Users\\zyxir\\Documents\\Zybox"))
+	   (zybox-possible-locs-linux
+	    '("~/Zybox"
+	      "~/Documents/Zybox"
+	      "/mnt/c/Zybox"
+	      "/mnt/c/Users/zyxir/Zybox"
+	      "/mnt/c/Users/Documents/Zybox"))
+	   (guessed-zybox-path
+	    (cl-some
+	     #'zy:file-directory-ret
+	     (cond
+	      (*win64* zybox-possible-locs-win64)
+	      (*linux* zybox-possible-locs-linux)))))
+      (if guessed-zybox-path
+	  (progn
+	    (setq zy/zybox-path guessed-zybox-path)
+	    (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy/zybox-path)
+	    (customize-save-variable 'zy/zybox-path zy/zybox-path))
+	(lwarn 'zyemacs :warning "Could not auto-detect Zybox."))))
+#+end_src
+
+* Utilities
+
+** Straight
+
+Install package with straight.
+
+#+begin_src elisp
+  (unless (featurep 'straight)
+    ;; Bootstrap straight.el
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+	   (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+	  (bootstrap-version 5))
+      (unless (file-exists-p bootstrap-file)
+	(with-current-buffer
+	    (url-retrieve-synchronously
+	     "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+	     'silent 'inhibit-cookies)
+	  (goto-char (point-max))
+	  (eval-print-last-sexp)))
+      (load bootstrap-file nil 'nomessage)))
+  (setq straight-vc-git-default-clone-depth 1)
+#+end_src
+
+** Setup.el
+
+*** Install It
+
+#+begin_src elisp
+  (straight-use-package '(setup :type git :host github :repo "phikal/setup.el"))
+  (require 'setup)
+#+end_src
+
+*** :pkg and :pkg-when
+
+#+begin_src elisp
+  (setup-define :pkg
+    (lambda (recipe)
+      `(unless (straight-use-package ',recipe)
+	 ,(setup-quit)))
+    :documentation
+    "Install RECIPE with `straight-use-package'.
+  This macro can be used as HEAD, and will replace itself with the
+  first RECIPE's package."
+    :repeatable t
+    :shorthand (lambda (sexp)
+		 (let ((recipe (cadr sexp)))
+		   (if (consp recipe)
+		       (car recipe)
+		     recipe))))
+  (setup-define :pkg-when
+    (lambda (recipe condition)
+      `(if ,condition
+	   (straight-use-package ',recipe)
+	 ,(setup-quit)))
+    :documentation
+    "Install RECIPE with `straight-use-package' when CONDITION is met.
+  If CONDITION is false, stop evaluating the body.  This macro can
+  be used as HEAD, and will replace itself with the RECIPE's
+  package.  This macro is not repeatable."
+    :repeatable nil
+    :indent 1
+    :shorthand (lambda (sexp)
+		 (let ((recipe (cadr sexp)))
+		   (if (consp recipe)
+		       (car recipe)
+		     recipe))))
+#+end_src
+
+*** :delay
+
+#+begin_src elisp
+  (setup-define :delay
+    (lambda (&optional time)
+      `(run-with-idle-timer ,(or time 1) nil
+			    (lambda () (require ',(setup-get 'feature)))))
+    :documentation "Delay loading the feature until a certain amount of idle time has passed.")
+#+end_src
+
+*** :load-after
+
+#+begin_src elisp
+  (setup-define :load-after
+      (lambda (&rest features)
+	(let ((body `(require ',(setup-get 'feature))))
+	  (dolist (feature (nreverse features))
+	    (setq body `(with-eval-after-load ',feature ,body)))
+	  body))
+    :documentation "Load the current feature after FEATURES.")
+#+end_src
+
+*** :needs
+
+#+begin_src elisp
+  (setup-define :needs
+      (lambda (executable)
+	`(unless (executable-find ,executable)
+	   ,(setup-quit)))
+    :documentation "If EXECUTABLE is not in the path, stop here."
+    :repeatable 1)
+#+end_src
+
+** Which-Key
+
+#+begin_src elisp
+  (setup (:pkg which-key)
+    (which-key-mode +1))
+#+end_src
+
+** General.el
+
+Manage keybinding with general.el, and rebind some default keys. Additionally,
+define ~M-m~ as my leader-key.
+
+#+begin_src elisp
+  (setup (:pkg general)
+    (define-prefix-command 'zy/leader-map)
+    (general-define-key "M-m" 'zy/leader-map
+			"M-z" 'back-to-indentation))
+#+end_src
+
+** Zyemacs Keymaps
+
+Define several leader keymaps.
+
+#+begin_src elisp
+  (define-prefix-command 'zy/leader-config-map)
+  (general-define-key
+   :keymaps 'zy/leader-map
+   "," 'zy/leader-config-map)
+#+end_src
+
+** Vertico and Minibuffer
+
+#+begin_src elisp
+  (setup (:pkg vertico)
+    (vertico-mode +1))
+
+  (setup (:pkg orderless)
+    (setq completion-styles '(orderless partial-completion)
+	  completion-category-defaults nil
+	  completion-category-overrides '((file (styles partial-completion)))))
+
+  (setup (:pkg savehist)
+    (savehist-mode +1))
+
+  (setup (:pkg marginalia)
+    (marginalia-mode +1))
+
+  (setq minibuffer-prompt-properties
+	'(read-only t cursor-intangible t face minibuffer-prompt)
+	enable-recursive-minibuffers t)
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+#+end_src
+
+** Consult
+
+Register utilities have not been configured.
+
+#+begin_src elisp
+  (setup (:pkg consult)
+    (setq completion-in-region-function
+	  #'consult-completion-in-region)
+    (advice-add #'completing-read-multiple
+		:override #'consult-completing-read-multiple)
+    (general-define-key
+     "M-y" 'consult-yank-pop
+     "<help> a" 'consult-apropos)
+    (general-define-key
+     :keymaps 'mode-specific-map
+     "h" 'consult-history
+     "m" 'consult-mode-command
+     "k" 'consult-kmacro)
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "M-:" 'consult-complex-command
+     "b" 'consult-buffer
+     "4 b" 'consult-buffer-other-window
+     "5 b" 'consult-buffer-other-frame
+     "r b" 'consult-bookmark
+     "p b" 'consult-project-buffer)
+    (general-define-key
+     :keymaps 'goto-map
+     "e" 'consult-compile-error
+     "f" 'consult-flymake
+     "g" 'consult-goto-line
+     "M-g" 'consult-goto-line
+     "o" 'consult-outline
+     "m" 'consult-mark
+     "k" 'consult-global-mark
+     "i" 'consult-imenu
+     "I" 'consult-imenu-multi)
+    (general-define-key
+     :keymaps 'search-map
+     "d" 'consult-find
+     "D" 'consult-locate
+     "g" 'consult-grep
+     "G" 'consult-git-grep
+     "r" 'consult-ripgrep
+     "l" 'consult-line
+     "L" 'consult-line-multi
+     "m" 'consult-multi-occur
+     "k" 'consult-keep-lines
+     "u" 'consult-focus-lines)
+    (general-define-key
+     "e" 'consult-isearch-history
+     :keymaps 'isearch-mode-map
+     "M-e" 'consult-isearch-history
+     "M-s e" 'consult-isearch-history
+     "M-s l" 'consult-line
+     "M-s L" 'consult-line-multi)
+    (general-define-key
+     :keymaps 'minibuffer-local-map
+     "M-s" 'consult-history
+     "M-r" 'consult-history))
+#+end_src
+
+** Embark
+
+#+begin_src elisp
+  (setup (:pkg embark)
+    (general-define-key
+     "C-," 'embark-act
+     "C-." 'embark-dwim
+     "<help> B" 'embark-bindings)
+    (:when-loaded
+      (add-to-list 'display-buffer-alist
+		   '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+		     nil
+		     (window-parameters (mode-line-format . none))))))
+#+end_src
+
+** Emacs Server
+
+#+begin_src elisp
+  (server-start)
+#+end_src
+
+* General Configuration
+
+** Native Setqs
+
+#+begin_src elisp
+  (setq
+   disabled-command-function nil
+   fill-column 80
+   frame-title-format '("" "emacs" " [%b]")
+   make-backup-files nil
+   auto-save-default nil
+   system-time-locale "C")
+#+end_src
+
+** Native Modes
+
+#+begin_src elisp
+  (delete-selection-mode +1)
+  (global-hl-line-mode +1)
+  (global-display-line-numbers-mode +1)
+  (recentf-mode +1)
+  (setup save-place
+    (:hook-into after-init-hook))
+#+end_src
+
+** Super Save
+
+#+begin_src elisp
+  (setup (:pkg super-save)
+    (setq super-save-auto-save-when-idle t)
+    (super-save-mode +1))
+#+end_src
+
+** Restart-Emacs
+
+Restart Emacs within Emacs, or open a new instance of Emacs.
+
+#+begin_src elisp
+  (setup (:pkg restart-emacs)
+    (general-define-key
+     :keymaps 'zy/leader-config-map
+     "R" 'restart-emacs
+     "N" 'restart-emacs-start-new-emacs))
+#+end_src
+
+* UI
+
+** Toggle UI Elements
+
+#+begin_src elisp
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (column-number-mode +1)
+#+end_src
+
+** Theme
+
+#+begin_src elisp
+  (defvar zy/default-theme 'doom-one-light
+    "Theme to enable at startup")
+  (when zy/default-theme
+    (setup (:pkg doom-themes)
+      (load-theme zy/default-theme t)
+      (doom-themes-org-config))
+    (setup (:pkg solaire-mode)
+      (solaire-global-mode +1)))
+#+end_src
+
+** Font
+
+These are temporary settings.
+
+#+begin_src elisp
+  (set-face-attribute
+   'default nil
+   :font (font-spec :family "Sarasa Mono TC"
+		    :weight 'normal
+		    :size 16))
+#+end_src
+
+* Lingua
+** Rime Input Method
+
+#+begin_src elisp
+  (setup (:pkg rime)
+    (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
+	  default-input-method "rime"
+	  rime-show-candidate 'posframe))
+
+  ;; Make the cursor orange when IM is active
+  (defvar zy/im-cursor-color "#008000"
+      "Default cursor color if an input method is active.")
+  (defvar zy/default-cursor-color (frame-parameter nil 'cursor-color)
+    "Default text cursor color.")
+  (defun zy/change-cursor-color-on-im ()
+    "Set cursor color depending IM state."
+    (interactive)
+    (set-cursor-color (if current-input-method
+			  zy/im-cursor-color
+			zy/default-cursor-color)))
+  (add-hook 'post-command-hook 'zy/change-cursor-color-on-im)
+#+end_src
+
+* Major Modes
+
+** Org
+
+*** Basic Org
+
+#+begin_src elisp
+  (setup org
+    (setq org-attach-id-dir "_org-att"
+	  org-log-done 'time
+	  org-src-window-setup 'current-window)
+    (add-hook 'org-mode-hook
+	      (lambda ()
+		(display-line-numbers-mode -1)
+		(org-indent-mode +1)
+		(visual-line-mode +1))))
+#+end_src
+
+*** GTD System
+
+#+begin_src elisp
+  (defvar zy/gtd-path (expand-file-name "org/org-gtd" zy/zybox-path)
+    "The path of my GTD system root.")
+  (defvar zy/gtd-inbox-path (expand-file-name "inbox.org" zy/gtd-path)
+    "The path of `inbox.org' of my GTD system.")
+  (defvar zy/gtd-gtd-path (expand-file-name "gtd.org" zy/gtd-path)
+    "The path of `gtd.org' of my GTD system.")
+  (defvar zy/gtd-someday-path (expand-file-name "someday.org" zy/gtd-path)
+    "The path of `someday.org' of my GTD system.")
+
+  (setq
+   org-agenda-files `(,zy/gtd-inbox-path
+		      ,zy/gtd-gtd-path
+		      ,zy/gtd-someday-path)
+   org-capture-templates `(("i" "inbox" entry
+			    (file+headline ,zy/gtd-inbox-path "inbox")
+			    "* TODO [#B] %U %i%?"
+			    :empty-lines 1)
+			   ("s" "someday" entry
+			    (file+headline ,zy/gtd-someday-path "someday")
+			    "* TODO [#C] %U %i%?"
+			    :empty-lines 1)
+			   ("t" "GTD" entry
+			    (file+olp+datetree ,zy/gtd-gtd-path)
+			    "* TODO [#B] %U %i%?"
+			    :empty-lines 1))
+   org-refile-targets `((,zy/gtd-gtd-path :maxlevel . 3)
+			(,zy/gtd-someday-path :level . 1))
+   org-todo-keywords '((sequence "TODO(t)"
+				 "IN PROCESS(i)"
+				 "POSTPONED(p)"
+				 "|"
+				 "DONE(d)")
+		       (sequence "|"
+				 "CANCELED(c)"))
+   org-todo-keywords-faces '(("TODO" . (:foreground "#B71C1C" :weight bold))
+			     ("IN PROCESS" . (:foreground "#8BC34A" :weight bold))
+			     ("POSTPONED" . (:foreground "#F57C00" :weight bold))
+			     ("DONE" . (:foreground "#33691E" :weight bold))
+			     ("CANCELED" . (:foreground "#757575" :weight bold))))
+
+  (general-define-key
+   :keymaps 'zy/leader-map
+   "a" 'org-agenda
+   "c" 'org-capture)
+#+end_src
+
+*** Org-Appear
+
+#+begin_src elisp
+  (setup (:pkg org-appear)
+    (add-hook 'org-mode-hook 'org-appear-mode)
+    (setq-default org-hide-emphasis-markers t))
+#+end_src
+
+*** Org-Superstar
+
+#+begin_src elisp
+  (setup (:pkg org-superstar)
+    (add-hook 'org-mode-hook 'org-superstar-mode)
+    (setq org-superstar-headline-bullets-list '(#x25c9
+                                                #x25cb
+                                                #x25c8
+                                                #x25c7
+                                                #x2666)
+          org-superstar-cycle-headline-bullets nil
+          org-hide-leading-stars nil
+          org-superstar-leading-bullet #x200b
+          org-indent-mode-turns-on-hiding-stars nil
+          org-superstar-item-bullet-alist '((42 . #x2605)
+                                            (43 . #x2666)
+                                            (45 . #x27a4))))
+#+end_src
+
+*** Org-Journal
+
+#+begin_src elisp
+  (setup (:pkg org-journal)
+    (general-define-key
+     :keymaps 'zy/leader-map
+     "g" 'calendar
+     "j" 'org-journal-new-entry)
+    (when zy/zybox-path
+      (setq org-journal-dir (expand-file-name "org/org-journal" zy/zybox-path)
+	    org-journal-file-format "%F"
+	    org-journal-date-format "%F %a W%V\n"
+	    org-journal-date-prefix "#+TITLE: "
+	    org-journal-time-format "%R "
+	    org-journal-time-format-post-midnight "%R (midnight) "
+	    org-journal-time-prefix "\n* "
+	    org-journal-file-header "")))
+#+end_src
