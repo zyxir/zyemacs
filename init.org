@@ -340,6 +340,17 @@ Register utilities have not been configured.
 		     (window-parameters (mode-line-format . none))))))
 #+end_src
 
+** Magit
+
+#+begin_src elisp
+  (setup (:pkg magit)
+    (:needs "git")
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "g" 'magit-status
+     "M-g" 'magit-dispatch))
+#+end_src
+
 ** Emacs Server
 
 #+begin_src elisp
