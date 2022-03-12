@@ -428,12 +428,12 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 ** Theme
 
 #+begin_src elisp
-  (defvar zy/default-theme 'doom-one-light
+  (defvar zy/default-theme 'spacemacs-light
     "Theme to enable at startup")
   (when zy/default-theme
-    (setup (:pkg doom-themes)
-      (load-theme zy/default-theme t)
-      (doom-themes-org-config))
+    (setup (:pkg spacemacs-theme)
+      (require 'spacemacs-common)
+      (load-theme zy/default-theme t))
     (setup (:pkg solaire-mode)
       (solaire-global-mode +1)))
 #+end_src
