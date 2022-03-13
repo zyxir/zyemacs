@@ -578,7 +578,7 @@ These are temporary settings.
      "j" 'org-journal-new-entry)
     (when zy/zybox-path
       (setq org-journal-dir (expand-file-name "org/org-journal" zy/zybox-path)
-	    org-journal-file-format "%F"
+	    org-journal-file-format "%F.org"
 	    org-journal-date-format "%F %a W%V\n"
 	    org-journal-date-prefix "#+TITLE: "
 	    org-journal-time-format "%R "
