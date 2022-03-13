@@ -440,14 +440,21 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 ** Font
 
-These are temporary settings.
+Currently these configuration only works on Linux. Requires improvements.
+
+目前這一配置衹是在 Linux 上基本能用。需要改進。
 
 #+begin_src elisp
-  (set-face-attribute
-   'default nil
-   :font (font-spec :family "Sarasa Mono TC"
-		    :weight 'normal
-		    :size 16))
+  (set-face-attribute 'default nil :font
+                      (font-spec :family "Sarasa Mono TC"
+                                 :weight 'normal))
+  (set-face-attribute 'variable-pitch nil :font
+                      (font-spec :family "Noto Serif CJK TC"
+                                 :weight 'normal
+                                 :size 20))
+  ;; (dolist (charset '(kana han cjk-misc bopomofo))
+  ;;   (set-fontset-font (frame-parameter nil 'font) charset
+  ;;                     (font-spec :family "Sarasa Mono TC")))
 #+end_src
 
 * Lingua
