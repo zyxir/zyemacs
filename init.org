@@ -484,11 +484,12 @@ These are temporary settings.
     (setq org-attach-id-dir "_org-att"
           org-log-done 'time
           org-src-window-setup 'current-window
-          org-startup-truncated nil)
+          org-tags-column 0)
     (add-hook 'org-mode-hook
               (lambda ()
                 (display-line-numbers-mode -1)
-                (org-indent-mode +1))))
+                (org-indent-mode +1)
+                (visual-line-mode +1))))
 #+end_src
 
 *** GTD System
