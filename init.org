@@ -472,15 +472,15 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 Font configuration is a huge pain for Chinese Emacs users. Comments under this headline will be in Chinese, to meet the needs of its audience.
 
-*** 設置字體列表
+*** 設置默認字體列表
 
-字體列表的格式爲 ~'(默認字體 默認字號 變寬字體 變寬字號 中文字體)~​。
+字體列表的格式爲 ~'(默認字體 默認字號 中文字體)~​。
 
 #+begin_src emacs-lisp
   (defvar zy/fonts-default
     (if (boundp 'zy/fonts-default)
         zy/fonts-default
-      '("Sarasa Mono SC" 16 "Source Han Serif TC" 20 nil))
+      '("Sarasa Mono TC" 16 "Sarasa Mono TC"))
     "List of fonts used for most occasions.")
 #+end_src
 
@@ -500,15 +500,10 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   If FRAME is omitted, use the current frame."
     (let ((font (nth 0 font-list))
           (size (nth 1 font-list))
-          (vpfont (nth 2 font-list))
-          (vpsize (nth 3 font-list))
-          (cjkfont (nth 4 font-list)))
+          (cjkfont (nth 2 font-list)))
       (when font
         (set-face-attribute 'default frame :font
                             (font-spec :family font :size size)))
-      (when vpfont
-        (set-face-attribute 'variable-pitch frame :font
-                            (font-spec :family vpfont :size vpsize)))
       (when cjkfont
         (dolist (charset '(kana han symbol cjk-misc bopomofo))
           (set-fontset-font nil charset
@@ -569,7 +564,6 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
               (lambda ()
                 (display-line-numbers-mode -1)
                 (org-indent-mode +1)
-                (variable-pitch-mode +1)
                 (visual-line-mode +1))))
 #+end_src
 
