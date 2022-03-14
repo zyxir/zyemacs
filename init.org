@@ -374,6 +374,17 @@ Register utilities have not been configured.
   (load "kinsoku.el")
 #+end_src
 
+** Project Settings
+
+Add my personal projects.
+
+#+begin_src elisp
+  (with-eval-after-load "project"
+    (when zy/zybox-path
+      (project-remember-projects-under
+       (expand-file-name "projects" zy/zybox-path))))
+#+end_src
+
 ** Super Save
 
 #+begin_src elisp
@@ -481,6 +492,14 @@ Currently these configuration only works on Linux. Requires improvements.
 #+end_src
 
 * Major Modes
+
+** Emacs Lisp
+
+#+begin_src elisp
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda ()
+              (setq-local fill-column 70)))
+#+end_src
 
 ** Org
 
@@ -593,3 +612,4 @@ Currently these configuration only works on Linux. Requires improvements.
 	    org-journal-time-prefix "\n* "
 	    org-journal-file-header "")))
 #+end_src
+
