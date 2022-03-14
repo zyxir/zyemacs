@@ -432,6 +432,14 @@ Add my personal projects.
      "M-g" 'magit-dispatch))
 #+end_src
 
+** Valign
+
+#+begin_src emacs-lisp
+  (setup (:pkg valign)
+    (add-hook 'org-mode-hook #'valign-mode)
+    (add-hook 'markdown-mode-hook #'valign-mode))
+#+end_src
+
 ** Restart-Emacs
 
 Restart Emacs within Emacs, or open a new instance of Emacs.
@@ -515,6 +523,15 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 #+begin_src emacs-lisp
   (when (display-graphic-p)
     (zy/set-font zy/fonts-default))
+#+end_src
+
+** Darkroom
+
+#+begin_src emacs-lisp
+  (setup (:pkg darkroom)
+    (general-define-key
+     :keymaps 'zy/leader-map
+     "d" 'darkroom-mode))
 #+end_src
 
 * Lingua
