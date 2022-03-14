@@ -1,5 +1,5 @@
 #+title: init.org
-#+property: header-args:elisp :tangle ~/.emacs.d/init.el
+#+property: header-args:emacs-lisp :tangle ~/.emacs.d/init.el
 
 * Startup
 
@@ -7,7 +7,7 @@
 
 See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html][The Early Init File]].
 
-#+begin_src elisp :tangle ~/.emacs.d/early-init.el
+#+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
   (setq default-frame-alist
         '((width . 100)
@@ -20,7 +20,7 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 
 ** Startup Timer
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defun display-startup-echo-area-message ()
     (message
      (format "ZyEmacs ready in %.2f seconds."
@@ -32,7 +32,7 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 
 Prohibit GC at startup, and adjust the threshold thereafter.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setq gc-cons-threshold most-positive-fixnum
 	gc-cons-percentage 0.5)
   (add-hook 'emacs-startup-hook
@@ -43,7 +43,7 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 
 ** Constants
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defconst *win64* (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
   (defconst *linux* (or (eq system-type 'gnu/linux)
@@ -55,7 +55,7 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 
 ** Load ~custom.el~
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
   (when (file-exists-p custom-file)
     (load custom-file))
@@ -63,14 +63,14 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 
 ** Load libraries
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (require 'cl-lib)
   (require 'cl-extra)
 #+end_src
 
 ** Lisp Path
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (let ((lisp-directories
 	 '("lisp" "site-lisp")))
     (dolist (dir lisp-directories)
@@ -84,7 +84,7 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 
 Zybox is the collection of my personal files.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defvar zy/zybox-path nil
     "The path of Zybox, the collection of all my files.
 
@@ -126,7 +126,7 @@ Zybox is the collection of my personal files.
 
 Install package with straight.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (unless (featurep 'straight)
     ;; Bootstrap straight.el
     (defvar bootstrap-version)
@@ -148,14 +148,14 @@ Install package with straight.
 
 *** Install It
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (straight-use-package '(setup :type git :host github :repo "phikal/setup.el"))
   (require 'setup)
 #+end_src
 
 *** :pkg and :pkg-when
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup-define :pkg
     (lambda (recipe)
       `(unless (straight-use-package ',recipe)
@@ -191,7 +191,7 @@ Install package with straight.
 
 *** :delay
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup-define :delay
     (lambda (&optional time)
       `(run-with-idle-timer ,(or time 1) nil
@@ -201,7 +201,7 @@ Install package with straight.
 
 *** :load-after
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup-define :load-after
       (lambda (&rest features)
 	(let ((body `(require ',(setup-get 'feature))))
@@ -213,7 +213,7 @@ Install package with straight.
 
 *** :needs
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup-define :needs
       (lambda (executable)
 	`(unless (executable-find ,executable)
@@ -224,7 +224,7 @@ Install package with straight.
 
 ** Which-Key
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg which-key)
     (which-key-mode +1))
 #+end_src
@@ -234,7 +234,7 @@ Install package with straight.
 Manage keybinding with general.el, and rebind some default keys. Additionally,
 define ~M-m~ as my leader-key.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg general)
     (define-prefix-command 'zy/leader-map)
     (general-define-key "M-m" 'zy/leader-map
@@ -245,7 +245,7 @@ define ~M-m~ as my leader-key.
 
 Define several leader keymaps.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (define-prefix-command 'zy/leader-config-map)
   (general-define-key
    :keymaps 'zy/leader-map
@@ -254,7 +254,7 @@ Define several leader keymaps.
 
 ** Vertico and Minibuffer
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg vertico)
     (vertico-mode +1))
 
@@ -279,7 +279,7 @@ Define several leader keymaps.
 
 Register utilities have not been configured.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg consult)
     (setq completion-in-region-function
           #'consult-completion-in-region)
@@ -338,7 +338,7 @@ Register utilities have not been configured.
 
 ** Embark
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg embark)
     (general-define-key
      "C-." 'embark-act
@@ -352,7 +352,7 @@ Register utilities have not been configured.
 
 ** Emacs Server
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (server-start)
 #+end_src
 
@@ -360,7 +360,7 @@ Register utilities have not been configured.
 
 ** Native Setqs
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setq
    disabled-command-function nil
    fill-column 80
@@ -374,7 +374,7 @@ Register utilities have not been configured.
 
 ** Native Modes
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (delete-selection-mode +1)
   (global-hl-line-mode +1)
   (global-display-line-numbers-mode +1)
@@ -389,7 +389,7 @@ Register utilities have not been configured.
 
 Add my personal projects.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defvar zy/project-path-list '()
     "A list of directories to search projects in.")
   (when zy/zybox-path
@@ -404,7 +404,7 @@ Add my personal projects.
 
 ** Super Save
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg super-save)
     (setq super-save-auto-save-when-idle t)
     (super-save-mode +1))
@@ -412,7 +412,7 @@ Add my personal projects.
 
 ** Avy
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg avy)
     (general-define-key
      "M-r" 'avy-goto-char
@@ -421,7 +421,7 @@ Add my personal projects.
 
 ** Magit
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg magit)
     (:needs "git")
     (general-define-key
@@ -434,7 +434,7 @@ Add my personal projects.
 
 Restart Emacs within Emacs, or open a new instance of Emacs.
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg restart-emacs)
     (general-define-key
      :keymaps 'zy/leader-config-map
@@ -446,7 +446,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 ** Toggle UI Elements
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (menu-bar-mode -1)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
@@ -455,7 +455,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 ** Theme
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defvar zy/default-theme 'spacemacs-light
     "Theme to enable at startup")
   (when zy/default-theme
@@ -474,7 +474,7 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 
 字體列表的格式爲 ~'(默認字體 默認字號 變寬字體 變寬字號 中文字體)~​。
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defvar zy/fonts-default
     (if (boundp 'zy/fonts-default)
         zy/fonts-default
@@ -491,7 +491,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** 字體配置函數
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defun zy/set-font (font-list &optional frame)
     "Set font according to FONT-LIST for FRAME.
 
@@ -515,7 +515,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** 衹為 GUI 窗口設置字體
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (when (display-graphic-p)
     (zy/set-font zy/fonts-default))
 #+end_src
@@ -523,7 +523,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 * Lingua
 ** Rime Input Method
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg rime)
     (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
           default-input-method "rime"
@@ -547,7 +547,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 ** Emacs Lisp
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (add-hook 'emacs-lisp-mode-hook
             (lambda ()
               (setq-local fill-column 70)))
@@ -557,7 +557,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** Basic Org
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg (org :type git :host github :repo "bzg/org-mode"))
     (setq org-attach-id-dir "_org-att"
           org-log-done 'time
@@ -567,12 +567,13 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
               (lambda ()
                 (display-line-numbers-mode -1)
                 (org-indent-mode +1)
+                (variable-pitch-mode +1)
                 (visual-line-mode +1))))
 #+end_src
 
 *** GTD System
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defvar zy/gtd-path (expand-file-name "org/org-gtd" zy/zybox-path)
     "The path of my GTD system root.")
   (defvar zy/gtd-inbox-path (expand-file-name "inbox.org" zy/gtd-path)
@@ -621,7 +622,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** Org-Appear
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg org-appear)
     (add-hook 'org-mode-hook 'org-appear-mode)
     (setq-default org-hide-emphasis-markers t))
@@ -629,7 +630,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** Org-Superstar
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg org-superstar)
     (add-hook 'org-mode-hook 'org-superstar-mode)
     (setq org-superstar-headline-bullets-list '(#x25c9
@@ -648,7 +649,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 *** Org-Journal
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (setup (:pkg org-journal)
     (general-define-key
      :keymaps 'zy/leader-map
@@ -669,6 +670,6 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 ** Setting Flags
 
-#+begin_src elisp
+#+begin_src emacs-lisp
   (customize-save-variable '*first-install* nil)
 #+end_src
