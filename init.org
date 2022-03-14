@@ -362,14 +362,16 @@ Register utilities have not been configured.
 
 #+begin_src emacs-lisp
   (setq
+   auto-save-default nil
    disabled-command-function nil
    fill-column 80
    frame-title-format '("" "emacs" " [%b]")
-   system-time-locale "C"
-   make-backup-files nil
-   auto-save-default nil
    inhibit-compacting-font-caches t
+   make-backup-files nil
+   system-time-locale "C"
    word-wrap-by-category t)
+  (setq-default
+   show-trailing-whitespace t)
 #+end_src
 
 ** Native Modes
