@@ -315,7 +315,6 @@ Register utilities have not been configured.
      "k" 'consult-keep-lines
      "u" 'consult-focus-lines)
     (general-define-key
-     "e" 'consult-isearch-history
      :keymaps 'isearch-mode-map
      "M-e" 'consult-isearch-history
      "M-s e" 'consult-isearch-history
