@@ -10,8 +10,8 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 #+begin_src elisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
   (setq default-frame-alist
-	'((width . 86)
-	  (height . 40)))
+        '((width . 100)
+          (height . 40)))
   (setq
    frame-inhibit-implied-resize t
    package-enable-at-startup nil
@@ -272,9 +272,9 @@ Register utilities have not been configured.
 #+begin_src elisp
   (setup (:pkg consult)
     (setq completion-in-region-function
-	  #'consult-completion-in-region)
+          #'consult-completion-in-region)
     (advice-add #'completing-read-multiple
-		:override #'consult-completing-read-multiple)
+                :override #'consult-completing-read-multiple)
     (general-define-key
      "M-y" 'consult-yank-pop
      "<help> a" 'consult-apropos)
@@ -458,21 +458,56 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 ** Font
 
-Currently these configuration only works on Linux. Requires improvements.
+Font configuration is a huge pain for Chinese Emacs users. Comments under this headline will be in Chinese, to meet the needs of its audience.
 
-目前這一配置衹是在 Linux 上基本能用。需要改進。
+*** 設置字體列表
+
+字體列表的格式爲 ~'(默認字體 默認字號 變寬字體 變寬字號 中文字體)~​。
 
 #+begin_src elisp
-  (set-face-attribute 'default nil :font
-                      (font-spec :family "Sarasa Mono TC"
-                                 :weight 'normal))
-  (set-face-attribute 'variable-pitch nil :font
-                      (font-spec :family "Noto Serif CJK TC"
-                                 :weight 'normal
-                                 :size 20))
-  ;; (dolist (charset '(kana han cjk-misc bopomofo))
-  ;;   (set-fontset-font (frame-parameter nil 'font) charset
-  ;;                     (font-spec :family "Sarasa Mono TC")))
+  (defvar zy/fonts-default
+    (if (boundp 'zy/fonts-default)
+        zy/fonts-default
+      '("Sarasa Mono SC" 16 "Source Han Serif TC" 20 nil))
+    "List of fonts used for most occasions.")
+#+end_src
+
+根據以下內容判斷等寬性：
+
+#+begin_quote
+等寬 等寬 等寬 等寬 等寬 mono mono mono mono mono
+mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
+#+end_quote
+
+*** 字體配置函數
+
+#+begin_src elisp
+  (defun zy/set-font (font-list &optional frame)
+    "Set font according to FONT-LIST for FRAME.
+
+  If FRAME is omitted, use the current frame."
+    (let ((font (nth 0 font-list))
+          (size (nth 1 font-list))
+          (vpfont (nth 2 font-list))
+          (vpsize (nth 3 font-list))
+          (cjkfont (nth 4 font-list)))
+      (when font
+        (set-face-attribute 'default frame :font
+                            (font-spec :family font :size size)))
+      (when vpfont
+        (set-face-attribute 'variable-pitch frame :font
+                            (font-spec :family vpfont :size vpsize)))
+      (when cjkfont
+        (dolist (charset '(kana han symbol cjk-misc bopomofo))
+          (set-fontset-font nil charset
+                            (font-spec :family cjkfont))))))
+#+end_src
+
+*** 衹為 GUI 窗口設置字體
+
+#+begin_src elisp
+  (when (display-graphic-p)
+    (zy/set-font zy/fonts-default))
 #+end_src
 
 * Lingua
