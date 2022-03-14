@@ -37,8 +37,10 @@ Prohibit GC at startup, and adjust the threshold thereafter.
   (defconst *win64* (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
   (defconst *linux* (or (eq system-type 'gnu/linux)
-		      (eq system-type 'linux))
+                      (eq system-type 'linux))
     "If Emacs is run on Linux.")
+  (defconst *first-install* t
+    "Its value is t during the first install of ZyEmacs.")
 #+end_src
 
 ** Load ~custom.el~
@@ -85,27 +87,27 @@ Zybox is the collection of my personal files.
 
   (unless zy/zybox-path
     (let* ((zybox-possible-locs-win64
-	    '("C:\\Zybox"
-	      "C:\\Users\\zyxir\\Zybox"
-	      "C:\\Users\\zyxir\\Documents\\Zybox"))
-	   (zybox-possible-locs-linux
-	    '("~/Zybox"
-	      "~/Documents/Zybox"
-	      "/mnt/c/Zybox"
-	      "/mnt/c/Users/zyxir/Zybox"
-	      "/mnt/c/Users/Documents/Zybox"))
-	   (guessed-zybox-path
-	    (cl-some
-	     #'zy:file-directory-ret
-	     (cond
-	      (*win64* zybox-possible-locs-win64)
-	      (*linux* zybox-possible-locs-linux)))))
+            '("C:\\Zybox"
+              "C:\\Users\\zyxir\\Zybox"
+              "C:\\Users\\zyxir\\Documents\\Zybox"))
+           (zybox-possible-locs-linux
+            '("~/Zybox"
+              "~/Documents/Zybox"
+              "/mnt/c/Zybox"
+              "/mnt/c/Users/zyxir/Zybox"
+              "/mnt/c/Users/Documents/Zybox"))
+           (guessed-zybox-path
+            (cl-some
+             #'zy:file-directory-ret
+             (cond
+              (*win64* zybox-possible-locs-win64)
+              (*linux* zybox-possible-locs-linux)))))
       (if guessed-zybox-path
-	  (progn
-	    (setq zy/zybox-path guessed-zybox-path)
-	    (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy/zybox-path)
-	    (customize-save-variable 'zy/zybox-path zy/zybox-path))
-	(lwarn 'zyemacs :warning "Could not auto-detect Zybox."))))
+          (progn
+            (setq zy/zybox-path guessed-zybox-path)
+            (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy/zybox-path)
+            (customize-save-variable 'zy/zybox-path zy/zybox-path))
+        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))))
 #+end_src
 
 * Utilities
@@ -379,10 +381,16 @@ Register utilities have not been configured.
 Add my personal projects.
 
 #+begin_src elisp
-  (with-eval-after-load "project"
-    (when zy/zybox-path
-      (project-remember-projects-under
-       (expand-file-name "projects" zy/zybox-path))))
+  (defvar zy/project-path-list '()
+    "A list of directories to search projects in.")
+  (when zy/zybox-path
+    (add-to-list 'zy/project-path-list
+                 (expand-file-name "projects" zy/zybox-path)))
+
+  (when *first-install*
+    (with-eval-after-load "project"
+      (dolist (dir zy/project-path-list)
+        (project-remember-projects-under dir))))
 #+end_src
 
 ** Super Save
@@ -613,3 +621,10 @@ Currently these configuration only works on Linux. Requires improvements.
 	    org-journal-file-header "")))
 #+end_src
 
+* Finishing Jobs
+
+** Setting Flags
+
+#+begin_src elisp
+  (customize-save-variable '*first-install* nil)
+#+end_src
