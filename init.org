@@ -18,6 +18,16 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
    inhibit-startup-message t)
 #+end_src
 
+** Startup Timer
+
+#+begin_src elisp
+  (defun display-startup-echo-area-message ()
+    (message
+     (format "ZyEmacs ready in %.2f seconds."
+             (float-time
+              (time-subtract after-init-time before-init-time)))))
+#+end_src
+
 ** Adjust GC
 
 Prohibit GC at startup, and adjust the threshold thereafter.
