@@ -125,7 +125,7 @@ Zybox is the collection of my personal files.
 
 ** Candies
 
-*** ~zy!add-hooks~
+*** ~zy!add-hook~
 
 #+begin_src emacs-lisp
   (defmacro zy!add-hook (hook &rest body)
@@ -395,7 +395,9 @@ Register utilities have not been configured.
    auto-save-default nil
    disabled-command-function nil
    fill-column 80
-   frame-title-format '("" "emacs" " [%b]")
+   frame-title-format (if *win64*
+                          '("" "windows-emacs" " [%b]")
+                        '("" "emacs" " [%b]"))
    inhibit-compacting-font-caches t
    make-backup-files nil
    system-time-locale "C"
@@ -416,21 +418,6 @@ Register utilities have not been configured.
     (setq-local show-trailing-whitespace t)
     (hl-line-mode +1)
     (load "kinsoku"))
-#+end_src
-
-** Project Settings
-
-Add my personal projects.
-
-#+begin_src emacs-lisp
-  (when *first-install*
-    (with-eval-after-load "project"
-      (let ((project-path-list '()))
-        (when zy/zybox-path
-          (add-to-list 'project-path-list
-                       (expand-file-name "projects" zy/zybox-path)))
-        (dolist (dir project-path-list)
-          (project-remember-projects-under dir)))))
 #+end_src
 
 ** Super Save
@@ -508,20 +495,95 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 Font configuration is a huge pain for Chinese Emacs users. Comments under this headline will be in Chinese, to meet the needs of its audience.
 
-*** 設置默認字體列表
+*** ZyEmacs 的字體機制
 
-在我的配置中，一個字體列表（fontlist）的格式爲 ~'(默認字體 變寬字體 中文字體)~​。表中的三個字體均爲 ~font-spec~ 格式，且均可以爲 ~nil~​。
+爲了能够給不同的 face 設置不同的西文字體和中文字體，甚至更多語種的字體（比如泰語字體），我經過一定的研究，制定了 ZyEmacs 的字體配置方案。目前（2020/03/16），我還沒有在網上看到能達到相同效果的配置。
+
+在 ZyEmacs 中，​*字體列表（fontlist）*​是滿足如下格式的列表，它定義了「主字體」作爲默認顯示字體，並且爲各個字符集指定了適用於它們的字體。
+
+#+begin_src emacs-lisp :tangle no
+  '(主字體
+    主字體字號
+    (字符集1 用於該字符集的字體)
+    (字符集2 用於該字符集的字體)
+    ((字符集3 字符集4 字符集5) 用於這些字符集的字體))
+#+end_src
+
+其中，若有任何字體的值爲 nil，或是在系統中沒有安裝，則會跳過它。
+
+下面定義了函數​~zy/apply-fontlist~​，用來將某一個字體列表應用到某一個 face：
+
+#+begin_src emacs-lisp
+  (defun zy:apply-cflist-to-fontset (cflist fontset)
+    "Apply charset-font list CFLIST to a FONTSET."
+    (dolist (cfpair cflist)
+      (let* ((charset (nth 0 cfpair))
+	     (font (nth 1 cfpair))
+	     (spec (font-spec :family font)))
+	(when (find-font spec)
+	  (if (listp charset)
+	      (dolist (c charset)
+		(set-fontset-font fontset c spec))
+	    (set-fontset-font fontset charset spec))))))
+
+  (defvar zy/zyfs-counter 0
+    "How many fontset have been created by ZyEmacs.")
+
+  (defun zy/apply-fontlist (fontlist &optional face frame)
+    "Apply FONTLIST to FACE on FRAME.
+
+  If FACE is nil or omitted, apply to the default face.
+
+  If FRAME is nil, set the attributes for all existing frames, as
+  well as the default for new frames.  If FRAME is t, change the
+  default for new frames only."
+    (let ((face (if face face 'default))
+	  (main-font (nth 0 fontlist))
+	  (main-size (nth 1 fontlist))
+	  (cflist (cdr (cdr fontlist))))
+      ;; 設置主字體。
+      (if (find-font (font-spec :family main-font))
+	  (set-face-attribute
+	   face
+	   frame
+	   :font (font-spec :family main-font
+			    :size main-size))
+	(set-face-attribute face frame :height (* 10 main-size)))
+      ;; 獲取 FACE 的 fontset。如果是 'unspecified，則新建一個 fontset，
+      ;; 並指定給它。
+      (let ((fontset (face-attribute face :fontset frame)))
+	(when (equal fontset 'unspecified)
+	  (setq fontset
+		(new-fontset
+		 (format "-*-*-*-*-*--*-*-*-*-*-*-fontset-zyfs%d"
+			 zy/zyfs-counter)
+		 nil)
+		zy/zyfs-counter (+ zy/zyfs-counter 1)))
+	(zy:apply-cflist-to-fontset cflist fontset)
+	(set-face-attribute face frame :fontset fontset))))
+#+end_src
+
+*** 設置字體列表
+
+爲默認和變寬兩種 face 設置字體。
 
 #+begin_src emacs-lisp
   (defvar zy/fontlist-default
     (if (boundp 'zy/fontlist-default)
-	zy/fonts-default
-      `(,(font-spec :family "Sarasa Mono Slab TC"
-		    :size 16)
-	,(font-spec :family "Noto Serif CJK TC"
-		    :size 20)
-	nil))
-    "List of fonts used for most occasions.")
+        zy/fontlist-default
+      '("Sarasa Mono Slab TC" 16
+        ((kana han cjk-misc bopomofo) "Sarasa Mono Slab TC")))
+    "Fontlist used for most occasions.")
+
+  (defvar zy/fontlist-variable-pitch
+    (if (boundp 'zy/fontlist-variable-pitch)
+        zy/fontlist-variable-pitch
+      '("Noto Serif" 18
+        ((kana han cjk-misc bopomofo) "Noto Serif CJK TC")))
+    "Fontlist used for the variable-pitch face.")
+
+  (zy/apply-fontlist zy/fontlist-default 'default)
+  (zy/apply-fontlist zy/fontlist-variable-pitch 'variable-pitch)
 #+end_src
 
 根據以下內容判斷等寬性：
@@ -529,32 +591,6 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 #+begin_src text
 等寬 等寬 等寬 等寬 等寬 mono mono mono mono mono
 mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
-#+end_src
-
-*** 字體配置函數
-
-#+begin_src emacs-lisp
-  (defun zy/apply-fontlist (fontlist &optional frame)
-    "Apply FONTLIST on FRAME.
-
-  If FRAME is omitted, use the current frame."
-    (let ((font (nth 0 fontlist))
-	  (vpfont (nth 1 fontlist))
-	  (cjkfont (nth 2 fontlist)))
-      (when (and font (find-font font))
-	(set-face-attribute 'default frame :font font))
-      (when (and vpfont (find-font vpfont))
-	(set-face-attribute 'variable-pitch frame :font vpfont))
-      (when (and cjkfont (find-font cjkfont))
-	(dolist (charset '(kana han symbol cjk-misc bopomofo))
-	  (set-fontset-font nil charset cjkfont)))))
-#+end_src
-
-*** 衹為 GUI 窗口設置字體
-
-#+begin_src emacs-lisp
-  (when (display-graphic-p)
-    (zy/apply-fontlist zy/fontlist-default))
 #+end_src
 
 ** Darkroom Mode
