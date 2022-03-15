@@ -514,24 +514,37 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
 ** Prose
 
-Adjust UI elements to make a prose-writing environment.
+Launch a prose frame for better writing experience.
 
 #+begin_src emacs-lisp
   (defvar zy/fonts-prose
     '("Noto Serif CJK TC" 20 "Noto Serif CJK TC")
     "List of fonts used for prose writing.")
+  (defvar zy/prose-frame-alist
+    '((width . 120)
+      (height . 40))
+    "Frame parameter of the prose frame.")
 
-  (defvar zy/prose nil
-    "If prose writing features is active.")
+  (straight-use-package 'darkroom)
+  (setq darkroom-text-scale-increase 0)
+
   (defun zy/prose ()
-    "Enable or disable prose writing features."
+    "Move the current buffer into a new prose frame."
     (interactive)
-    (if zy/prose
-        (progn
-          (zy/set-font zy/fonts-default)
-          (setq zy/prose nil))
-      (zy/set-font zy/fonts-prose)
-      (setq zy/prose t)))
+    (let ((curbuf (current-buffer))
+          (curwin (get-buffer-window))
+          (curframe (selected-frame))
+          (newframe (make-frame zy/prose-frame-alist)))
+      ;; Setup the new frame.
+      (select-frame newframe)
+      (zy/set-font zy/fonts-prose newframe)
+      (darkroom-tentative-mode +1)
+      (hl-line-mode -1)
+      ;; Remove the old window.
+      (select-window curwin)
+      (if (one-window-p)
+          (delete-frame curframe)
+        (delete-window curwin))))
 #+end_src
 
 * Lingua
