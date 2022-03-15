@@ -123,6 +123,48 @@ Zybox is the collection of my personal files.
 
 * Utilities
 
+** Candies
+
+*** ~zy!add-hooks~
+
+#+begin_src emacs-lisp
+  (defmacro zy!add-hook (hook &rest body)
+    "Add a lambda function of BODY to the value of HOOK."
+    (declare (indent 1) (debug (form def-body)))
+    `(add-hook ,hook (lambda () ,@body)))
+#+end_src
+
+This macro enables grouping several expressions into one hook, like this
+
+#+begin_src emacs-lisp :tangle nil
+  (zy!add-hook 'some-hook
+    (do-something)
+    (do-something-else))
+#+end_src
+
+*** ~zy!add-hooks~
+
+#+begin_src emacs-lisp
+  (defmacro zy!add-hooks (hook-list &rest body)
+    "Add a lambda function of BODY to each hook in HOOK-LIST."
+    (declare (indent 1) (debug (form def-body)))
+    (let ((result '(progn)))
+      (dolist (hook hook-list)
+        (add-to-list
+         'result
+         `(add-hook ,hook (lambda () ,@body))
+         'append))
+      result))
+#+end_src
+
+This macro enables adding something to multiple hooks simultaneously, like this:
+
+#+begin_src emacs-lisp :tangle nil
+  (zy!add-hooks ('some-hook 'another-hook)
+    (do-something)
+    (do-something-else))
+#+end_src
+
 ** Straight
 
 Install package with straight.
@@ -242,7 +284,7 @@ define ~M-m~ as my leader-key.
 			"M-z" 'back-to-indentation))
 #+end_src
 
-** Zyemacs Keymaps
+** ZyEmacs Keymaps
 
 Define several leader keymaps.
 
@@ -250,7 +292,8 @@ Define several leader keymaps.
   (define-prefix-command 'zy/leader-config-map)
   (general-define-key
    :keymaps 'zy/leader-map
-   "," 'zy/leader-config-map)
+   "m" 'zy/leader-config-map
+   "M-m" 'zy/leader-config-map)
 #+end_src
 
 ** Vertico and Minibuffer
@@ -357,23 +400,22 @@ Register utilities have not been configured.
    make-backup-files nil
    system-time-locale "C"
    word-wrap-by-category t)
-  (setq-default
-   show-trailing-whitespace t)
 #+end_src
 
 ** Native Modes
 
 #+begin_src emacs-lisp
-  (add-hook
-   'after-init-hook
-   (lambda ()
-     (delete-selection-mode +1)
-     (global-hl-line-mode +1)
-     (global-display-line-numbers-mode +1)
-     (global-subword-mode +1)
-     (recentf-mode +1)
-     (save-place-mode +1)
-     (load "kinsoku.el")))
+  (zy!add-hook 'after-init-hook
+    (delete-selection-mode +1)
+    (global-display-line-numbers-mode +1)
+    (global-subword-mode +1)
+    (recentf-mode +1)
+    (save-place-mode +1))
+
+  (zy!add-hooks ('prog-mode-hook 'text-mode-hook)
+    (setq-local show-trailing-whitespace t)
+    (hl-line-mode +1)
+    (load "kinsoku"))
 #+end_src
 
 ** Project Settings
@@ -412,7 +454,6 @@ Add my personal projects.
 
 #+begin_src emacs-lisp
   (setup (:pkg magit)
-    (:needs "git")
     (general-define-key
      :keymaps 'ctl-x-map
      "g" 'magit-status
@@ -469,85 +510,74 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 
 *** 設置默認字體列表
 
-字體列表的格式爲 ~'(默認字體 默認字號 中文字體)~​。
+在我的配置中，一個字體列表（fontlist）的格式爲 ~'(默認字體 變寬字體 中文字體)~​。表中的三個字體均爲 ~font-spec~ 格式，且均可以爲 ~nil~​。
 
 #+begin_src emacs-lisp
-  (defvar zy/fonts-default
-    (if (boundp 'zy/fonts-default)
+  (defvar zy/fontlist-default
+    (if (boundp 'zy/fontlist-default)
         zy/fonts-default
-      '("Sarasa Mono TC" 16 "Sarasa Mono TC"))
+      `(,(font-spec :family "Sarasa Mono Slab TC"
+                    :size 16)
+        ,(font-spec :family "Noto Serif CJK TC"
+                    :size 20)
+        nil))
     "List of fonts used for most occasions.")
 #+end_src
 
 根據以下內容判斷等寬性：
 
-#+begin_quote
+#+begin_src text
 等寬 等寬 等寬 等寬 等寬 mono mono mono mono mono
 mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
-#+end_quote
+#+end_src
 
 *** 字體配置函數
 
 #+begin_src emacs-lisp
-  (defun zy/set-font (font-list &optional frame)
-    "Set font according to FONT-LIST for FRAME.
+  (defun zy/apply-fontlist (fontlist &optional frame)
+    "Apply FONTLIST on FRAME.
 
   If FRAME is omitted, use the current frame."
-    (let ((font (nth 0 font-list))
-          (size (nth 1 font-list))
-          (cjkfont (nth 2 font-list)))
+    (let ((font (nth 0 fontlist))
+          (vpfont (nth 1 fontlist))
+          (cjkfont (nth 2 fontlist)))
       (when font
-        (set-face-attribute 'default frame :font
-                            (font-spec :family font :size size)))
+        (set-face-attribute 'default frame :font font))
+      (when vpfont
+        (set-face-attribute 'variable-pitch frame :font vpfont))
       (when cjkfont
         (dolist (charset '(kana han symbol cjk-misc bopomofo))
-          (set-fontset-font nil charset
-                            (font-spec :family cjkfont))))))
+          (set-fontset-font nil charset cjkfont)))))
 #+end_src
 
 *** 衹為 GUI 窗口設置字體
 
 #+begin_src emacs-lisp
   (when (display-graphic-p)
-    (zy/set-font zy/fonts-default))
+    (zy/apply-fontlist zy/fontlist-default))
 #+end_src
 
-** Prose
-
-Launch a prose frame for better writing experience.
+** Darkroom Mode
 
 #+begin_src emacs-lisp
-  (defvar zy/fonts-prose
-    '("Noto Serif CJK TC" 20 "Noto Serif CJK TC")
-    "List of fonts used for prose writing.")
-  (defvar zy/prose-frame-alist
-    '((width . 120)
-      (height . 40))
-    "Frame parameter of the prose frame.")
-
   (straight-use-package 'darkroom)
-  (setq darkroom-text-scale-increase 0)
-
-  (defun zy/prose ()
-    "Move the current buffer into a new prose frame."
-    (interactive)
-    (let ((curbuf (current-buffer))
-          (curwin (get-buffer-window))
-          (curframe (selected-frame))
-          (newframe (make-frame zy/prose-frame-alist)))
-      ;; Setup the new frame.
-      (select-frame newframe)
-      (zy/set-font zy/fonts-prose newframe)
-      (darkroom-tentative-mode +1)
-      (hl-line-mode -1)
-      ;; Remove the old window.
-      (select-window curwin)
-      (if (one-window-p)
-          (delete-frame curframe)
-        (delete-window curwin))))
+  (setq darkroom-margins 0.05
+        darkroom-text-scale-increase 1)
+  (general-define-key
+   :keymaps 'zy/leader-config-map
+   "d" #'darkroom-tentative-mode)
 #+end_src
 
-* Lingua
+* Lingual
+** Encoding
+
+Make everything UTF-8.
+
+#+begin_src emacs-lisp
+  (prefer-coding-system 'utf-8)
+  (set-language-environment "UTF-8")
+#+end_src
+
 ** Rime Input Method
 
 #+begin_src emacs-lisp
@@ -575,9 +605,8 @@ Launch a prose frame for better writing experience.
 ** Emacs Lisp
 
 #+begin_src emacs-lisp
-  (add-hook 'emacs-lisp-mode-hook
-            (lambda ()
-              (setq-local fill-column 70)))
+  (zy!add-hook 'emacs-lisp-mode-hook
+    (setq-local fill-column 70))
 #+end_src
 
 ** Org
@@ -590,11 +619,10 @@ Launch a prose frame for better writing experience.
           org-log-done 'time
           org-src-window-setup 'current-window
           org-tags-column 0)
-    (add-hook 'org-mode-hook
-              (lambda ()
-                (display-line-numbers-mode -1)
-                (org-indent-mode +1)
-                (visual-line-mode +1))))
+    (zy!add-hook 'org-mode-hook
+      (display-line-numbers-mode -1)
+      (org-indent-mode +1)
+      (visual-line-mode +1)))
 #+end_src
 
 *** GTD System
@@ -681,15 +709,16 @@ Launch a prose frame for better writing experience.
      :keymaps 'zy/leader-map
      "g" 'calendar
      "j" 'org-journal-new-entry)
+    (setq org-journal-extend-today-until 3)
     (when zy/zybox-path
       (setq org-journal-dir (expand-file-name "org/org-journal" zy/zybox-path)
-	    org-journal-file-format "%F.org"
-	    org-journal-date-format "%F %a W%V\n"
-	    org-journal-date-prefix "#+TITLE: "
-	    org-journal-time-format "%R "
-	    org-journal-time-format-post-midnight "%R (midnight) "
-	    org-journal-time-prefix "\n* "
-	    org-journal-file-header "")))
+            org-journal-file-format "%F.org"
+            org-journal-date-format "%F %a W%V\n"
+            org-journal-date-prefix "#+TITLE: "
+            org-journal-time-format "%R "
+            org-journal-time-format-post-midnight "%R (midnight) "
+            org-journal-time-prefix "\n* "
+            org-journal-file-header "")))
 #+end_src
 
 * Finishing Jobs
