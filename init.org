@@ -136,7 +136,7 @@ Zybox is the collection of my personal files.
 
 This macro enables grouping several expressions into one hook, like this
 
-#+begin_src emacs-lisp :tangle nil
+#+begin_src emacs-lisp :tangle no
   (zy!add-hook 'some-hook
     (do-something)
     (do-something-else))
@@ -159,7 +159,7 @@ This macro enables grouping several expressions into one hook, like this
 
 This macro enables adding something to multiple hooks simultaneously, like this:
 
-#+begin_src emacs-lisp :tangle nil
+#+begin_src emacs-lisp :tangle no
   (zy!add-hooks ('some-hook 'another-hook)
     (do-something)
     (do-something-else))
