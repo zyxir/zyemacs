@@ -427,7 +427,7 @@ Add my personal projects.
     (with-eval-after-load "project"
       (let ((project-path-list '()))
         (when zy/zybox-path
-          (add-to-list project-path-list
+          (add-to-list 'project-path-list
                        (expand-file-name "projects" zy/zybox-path)))
         (dolist (dir project-path-list)
           (project-remember-projects-under dir)))))
@@ -515,12 +515,12 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 #+begin_src emacs-lisp
   (defvar zy/fontlist-default
     (if (boundp 'zy/fontlist-default)
-        zy/fonts-default
+	zy/fonts-default
       `(,(font-spec :family "Sarasa Mono Slab TC"
-                    :size 16)
-        ,(font-spec :family "Noto Serif CJK TC"
-                    :size 20)
-        nil))
+		    :size 16)
+	,(font-spec :family "Noto Serif CJK TC"
+		    :size 20)
+	nil))
     "List of fonts used for most occasions.")
 #+end_src
 
@@ -539,15 +539,15 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
   If FRAME is omitted, use the current frame."
     (let ((font (nth 0 fontlist))
-          (vpfont (nth 1 fontlist))
-          (cjkfont (nth 2 fontlist)))
-      (when font
-        (set-face-attribute 'default frame :font font))
-      (when vpfont
-        (set-face-attribute 'variable-pitch frame :font vpfont))
-      (when cjkfont
-        (dolist (charset '(kana han symbol cjk-misc bopomofo))
-          (set-fontset-font nil charset cjkfont)))))
+	  (vpfont (nth 1 fontlist))
+	  (cjkfont (nth 2 fontlist)))
+      (when (and font (find-font font))
+	(set-face-attribute 'default frame :font font))
+      (when (and vpfont (find-font vpfont))
+	(set-face-attribute 'variable-pitch frame :font vpfont))
+      (when (and cjkfont (find-font cjkfont))
+	(dolist (charset '(kana han symbol cjk-misc bopomofo))
+	  (set-fontset-font nil charset cjkfont)))))
 #+end_src
 
 *** 衹為 GUI 窗口設置字體
@@ -616,9 +616,9 @@ Make everything UTF-8.
 #+begin_src emacs-lisp
   (setup (:pkg (org :type git :host github :repo "bzg/org-mode"))
     (setq org-attach-id-dir "_org-att"
-          org-log-done 'time
-          org-src-window-setup 'current-window
-          org-tags-column 0)
+	  org-log-done 'time
+	  org-src-window-setup 'current-window
+	  org-tags-column 0)
     (zy!add-hook 'org-mode-hook
       (display-line-numbers-mode -1)
       (org-indent-mode +1)
