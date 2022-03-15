@@ -14,8 +14,9 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
           (height . 40)))
   (setq
    frame-inhibit-implied-resize t
-   package-enable-at-startup nil
-   inhibit-startup-message t)
+   inhibit-startup-message t
+   native-comp-async-report-warnings-errors nil
+   package-enable-at-startup nil)
 #+end_src
 
 ** Startup Timer
@@ -34,11 +35,11 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 
 #+begin_src emacs-lisp
   (setq gc-cons-threshold most-positive-fixnum
-	gc-cons-percentage 0.5)
+        gc-cons-percentage 0.5)
   (add-hook 'emacs-startup-hook
-	    (lambda ()
-	      (setq gc-cons-threshold (* 32 1024 1024)
-		    gc-cons-percentage 0.1)))
+            (lambda ()
+              (setq gc-cons-threshold (* 32 1024 1024)
+                    gc-cons-percentage 0.1)))
 #+end_src
 
 ** Constants
@@ -195,7 +196,7 @@ Install package with straight.
   (setup-define :delay
     (lambda (&optional time)
       `(run-with-idle-timer ,(or time 1) nil
-			    (lambda () (require ',(setup-get 'feature)))))
+                            (lambda () (require ',(setup-get 'feature)))))
     :documentation "Delay loading the feature until a certain amount of idle time has passed.")
 #+end_src
 
@@ -336,20 +337,6 @@ Register utilities have not been configured.
      "M-r" 'consult-history))
 #+end_src
 
-** Embark
-
-#+begin_src emacs-lisp
-  (setup (:pkg embark)
-    (general-define-key
-     "C-." 'embark-act
-     "<help> B" 'embark-bindings)
-    (:when-loaded
-      (add-to-list 'display-buffer-alist
-                   '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                     nil
-                     (window-parameters (mode-line-format . none))))))
-#+end_src
-
 ** Emacs Server
 
 #+begin_src emacs-lisp
@@ -377,14 +364,16 @@ Register utilities have not been configured.
 ** Native Modes
 
 #+begin_src emacs-lisp
-  (delete-selection-mode +1)
-  (global-hl-line-mode +1)
-  (global-display-line-numbers-mode +1)
-  (global-subword-mode +1)
-  (recentf-mode +1)
-  (setup save-place
-    (:hook-into after-init-hook))
-  (load "kinsoku.el")
+  (add-hook
+   'after-init-hook
+   (lambda ()
+     (delete-selection-mode +1)
+     (global-hl-line-mode +1)
+     (global-display-line-numbers-mode +1)
+     (global-subword-mode +1)
+     (recentf-mode +1)
+     (save-place-mode +1)
+     (load "kinsoku.el")))
 #+end_src
 
 ** Project Settings
@@ -392,16 +381,14 @@ Register utilities have not been configured.
 Add my personal projects.
 
 #+begin_src emacs-lisp
-  (defvar zy/project-path-list '()
-    "A list of directories to search projects in.")
-  (when zy/zybox-path
-    (add-to-list 'zy/project-path-list
-                 (expand-file-name "projects" zy/zybox-path)))
-
   (when *first-install*
     (with-eval-after-load "project"
-      (dolist (dir zy/project-path-list)
-        (project-remember-projects-under dir))))
+      (let ((project-path-list '()))
+        (when zy/zybox-path
+          (add-to-list project-path-list
+                       (expand-file-name "projects" zy/zybox-path)))
+        (dolist (dir project-path-list)
+          (project-remember-projects-under dir)))))
 #+end_src
 
 ** Super Save
@@ -525,13 +512,26 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
     (zy/set-font zy/fonts-default))
 #+end_src
 
-** Darkroom
+** Prose
+
+Adjust UI elements to make a prose-writing environment.
 
 #+begin_src emacs-lisp
-  (setup (:pkg darkroom)
-    (general-define-key
-     :keymaps 'zy/leader-map
-     "d" 'darkroom-mode))
+  (defvar zy/fonts-prose
+    '("Noto Serif CJK TC" 20 "Noto Serif CJK TC")
+    "List of fonts used for prose writing.")
+
+  (defvar zy/prose nil
+    "If prose writing features is active.")
+  (defun zy/prose ()
+    "Enable or disable prose writing features."
+    (interactive)
+    (if zy/prose
+        (progn
+          (zy/set-font zy/fonts-default)
+          (setq zy/prose nil))
+      (zy/set-font zy/fonts-prose)
+      (setq zy/prose t)))
 #+end_src
 
 * Lingua
