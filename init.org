@@ -412,12 +412,12 @@ Register utilities have not been configured.
     (global-display-line-numbers-mode +1)
     (global-subword-mode +1)
     (recentf-mode +1)
-    (save-place-mode +1))
+    (save-place-mode +1)
+    (load "kinsoku" 'noerror 'nomessage))
 
   (zy!add-hooks ('prog-mode-hook 'text-mode-hook)
     (setq-local show-trailing-whitespace t)
-    (hl-line-mode +1)
-    (load "kinsoku"))
+    (hl-line-mode +1))
 #+end_src
 
 ** Super Save
@@ -582,36 +582,96 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
         (set-face-attribute face frame :fontset fontset))))
 #+end_src
 
-*** 設置字體列表
-
-爲默認和變寬兩種 face 設置字體。
+*** ~zy!pick-font~ and ~zy!pick-main-font~
 
 #+begin_src emacs-lisp
-  (defconst zy*fontlist-default-preset
-    '(("Iosevka Term Slab" 16)
-        ((kana han cjk-misc bopomofo) "GenYoGothic TW"))
-    "Preset value of `zy/fontlist-default'")
+  (defmacro zy!pick-font (&rest fonts)
+    "Get the first available font in FONTS."
+    `(let ((--fonts-tail-- ',fonts)
+           font
+           (result nil))
+       (while --fonts-tail--
+         (setq font (car --fonts-tail--))
+         (if (x-list-fonts font)
+             (setq result font
+                   --fonts-tail-- nil)
+           (setq --fonts-tail--
+                 (cdr --fonts-tail--))))
+       result))
 
-  (defconst zy*fontlist-vp-preset
-    '(("Libertinus Serif" 18)
-        ((kana han cjk-misc bopomofo) "GenYoMin TW"))
-    "Preset value of `zy/fontlist-vp'")
+  (defmacro zy!pick-main-font (&rest mains)
+    "Get the first available main font in MAINS.
 
-  (defvar zy/fontlist-default
-    (if (boundp 'zy/fontlist-default)
-        zy/fontlist-default
-      zy*fontlist-default-preset)
-    "Fontlist used for most occasions.")
+  Each element of MAINS is like (font size weight)."
+    `(let ((--mains-tail-- ',mains)
+           main
+           (result nil))
+       (while --mains-tail--
+         (setq main (car --mains-tail--))
+         (let ((main-font (car main))
+               (main-size (if (cadr main)
+                              (cadr main)
+                            zy*default-font-size))
+               (main-weight (if (caddr main)
+                                (caddr main)
+                              zy*default-font-weight)))
+           (if (find-font (font-spec :family main-font
+                                     :size main-size
+                                     :weight main-weight))
+               (setq result main
+                     --mains-tail-- nil)
+             (setq --mains-tail--
+                   (cdr --mains-tail--)))))
+       result))
+#+end_src
 
-  (defvar zy/fontlist-vp
-    (if (boundp 'zy/fontlist-vp)
-        zy/fontlist-vp
-      zy*fontlist-vp-preset)
-    "Fontlist used for the variable-pitch face.")
+*** Create Fontlists
 
+You can customise font by setting ~zy/fontlist-default~ and ~zy/fontlist-varpitch~ in ~custom.el~.
+
+#+begin_src emacs-lisp
   (when (display-graphic-p)
-    (zy/apply-fontlist zy/fontlist-default 'default)
-    (zy/apply-fontlist zy/fontlist-vp 'variable-pitch))
+    (zy!add-hook 'after-init-hook
+
+      (defconst zy*fontlist-default-preset
+        `(,(zy!pick-main-font ("Sarasa Mono Slab TC" 16)
+                              ("Iosevka Term Slab" 16)
+                              ("Consolas" 16)
+                              ("monospace" 16))
+          ((han cjk-misc bopomofo)
+           ,(zy!pick-font "GenYoGothic TW"
+                          "Sarasa Mono Slab TC"
+                          "Noto Sans CJK TC"
+                          "Source Han Sans TC"
+                          "Microsoft YaHei")))
+        "Preset value of `zy/fontlist-default'")
+
+      (defvar zy/fontlist-default
+        (if (boundp 'zy/fontlist-default)
+            zy/fontlist-default
+          zy*fontlist-default-preset)
+        "Fontlist used on most occasions.")
+
+      (defconst zy*fontlist-varpitch-preset
+        `(,(zy!pick-main-font ("Libertinus Serif" 18)
+                              ("Noto Serif" 18)
+                              ("Times New Roman" 18)
+                              ("serif" 18))
+          ((han cjk-misc bopomofo)
+           ,(zy!pick-font "GenYoMin TW"
+                          "Noto Serif CJK TC"
+                          "Source Han Sans TC"
+                          "SimSun")))
+        "Preset value of `zy/fontlist-varpitch'")
+
+      (defvar zy/fontlist-varpitch
+        (if (boundp 'zy/fontlist-varpitch)
+            zy/fontlist-varpitch
+          zy*fontlist-varpitch-preset)
+        "Fontlist used for 'variable-pitch' face.")
+
+      (zy/apply-fontlist zy/fontlist-default 'default)
+      (zy/apply-fontlist zy/fontlist-varpitch 'variable-pitch)))
 #+end_src
 
 根據以下內容判斷等寬性：
@@ -631,8 +691,8 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
    :keymaps 'zy/leader-config-map
    "d" #'darkroom-mode)
   (zy!add-hook 'darkroom-mode-hook
-    (hl-line-mode)
-    (variable-pitch-mode))
+    (hl-line-mode 'toggle)
+    (variable-pitch-mode 'toggle))
 #+end_src
 
 * Lingual
