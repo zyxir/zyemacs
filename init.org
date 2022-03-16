@@ -10,8 +10,8 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 #+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
   (setq default-frame-alist
-        '((width . 100)
-          (height . 40)))
+        '((width . 120)
+          (height . 45)))
   (setq
    frame-inhibit-implied-resize t
    inhibit-startup-message t
@@ -502,30 +502,21 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 在 ZyEmacs 中，​*字體列表（fontlist）*​是滿足如下格式的列表，它定義了「主字體」作爲默認顯示字體，並且爲各個字符集指定了適用於它們的字體。
 
 #+begin_src emacs-lisp :tangle no
-  '(主字體
-    主字體字號
-    (字符集1 用於該字符集的字體)
-    (字符集2 用於該字符集的字體)
-    ((字符集3 字符集4 字符集5) 用於這些字符集的字體))
+  '((主字體 主字體字號 主字體字重)
+    (字符集1 用於該字符集的字體 該字體字重 APPEND)
+    (字符集2 用於該字符集的字體 該字體字重 APPEND)
+    ((字符集3 字符集4 字符集5) 用於這些字符集的字體 該字體字重 APPEND))
 #+end_src
 
-其中，若有任何字體的值爲 nil，或是在系統中沒有安裝，則會跳過它。
+其中，若有任何字體的值爲 nil，或是在系統中沒有安裝，則會跳過它；字號和字重都可以省去或爲 nil，代表使用默認値；當 APPEND 爲 t 時，會附加在之原有的設置之後（與 ~set-fontset-font~ 的參數一致）。
 
 下面定義了函數​~zy/apply-fontlist~​，用來將某一個字體列表應用到某一個 face：
 
 #+begin_src emacs-lisp
-  (defun zy:apply-cflist-to-fontset (cflist fontset)
-    "Apply charset-font list CFLIST to a FONTSET."
-    (dolist (cfpair cflist)
-      (let* ((charset (nth 0 cfpair))
-	     (font (nth 1 cfpair))
-	     (spec (font-spec :family font)))
-	(when (find-font spec)
-	  (if (listp charset)
-	      (dolist (c charset)
-		(set-fontset-font fontset c spec))
-	    (set-fontset-font fontset charset spec))))))
-
+  (defconst zy*default-font-size 16
+    "Default font size.")
+  (defconst zy*default-font-weight 'normal
+    "Default font weight.")
   (defvar zy/zyfs-counter 0
     "How many fontset have been created by ZyEmacs.")
 
@@ -537,30 +528,58 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
   If FRAME is nil, set the attributes for all existing frames, as
   well as the default for new frames.  If FRAME is t, change the
   default for new frames only."
-    (let ((face (if face face 'default))
-	  (main-font (nth 0 fontlist))
-	  (main-size (nth 1 fontlist))
-	  (cflist (cdr (cdr fontlist))))
+    (let* ((face (if face face 'default))
+           (main (car fontlist))
+           (main-font (car main))
+           (main-size (if (cadr main)
+                          (cadr main)
+                        zy*default-font-size))
+           (main-weight (if (caddr main)
+                            (caddr main)
+                          zy*default-font-weight))
+           (cflist (cdr fontlist))
+           fontset
+           (fontset-is-new nil))
       ;; 設置主字體。
-      (if (find-font (font-spec :family main-font))
-	  (set-face-attribute
-	   face
-	   frame
-	   :font (font-spec :family main-font
-			    :size main-size))
-	(set-face-attribute face frame :height (* 10 main-size)))
-      ;; 獲取 FACE 的 fontset。如果是 'unspecified，則新建一個 fontset，
-      ;; 並指定給它。
-      (let ((fontset (face-attribute face :fontset frame)))
-	(when (equal fontset 'unspecified)
-	  (setq fontset
-		(new-fontset
-		 (format "-*-*-*-*-*--*-*-*-*-*-*-fontset-zyfs%d"
-			 zy/zyfs-counter)
-		 nil)
-		zy/zyfs-counter (+ zy/zyfs-counter 1)))
-	(zy:apply-cflist-to-fontset cflist fontset)
-	(set-face-attribute face frame :fontset fontset))))
+      (unless (find-font (font-spec :family main-font
+                                    :weight main-weight))
+        (setq main-font nil))
+      (set-face-attribute
+       face
+       frame
+       :font (font-spec :family main-font
+                        :size main-size
+                        :weight main-weight))
+      ;; 獲取 FACE 的 fontset。如果是 'unspecified'，則新建一個 fontset。
+      (setq fontset (face-attribute face :fontset frame))
+      (when (equal fontset 'unspecified)
+        (setq fontset
+              (new-fontset
+               (format "-*-*-*-*-*--*-*-*-*-*-*-fontset-zyfs%d"
+                       zy/zyfs-counter)
+               nil)
+              zy/zyfs-counter (+ zy/zyfs-counter 1)
+              fontset-is-new t))
+      ;; 遍歷 CFLIST，爲 FONTSET 的各個字符集設置字體。
+      (dolist (cfpair cflist)
+        (let* ((charset-or-charsets (car cfpair))
+               (font (cadr cfpair))
+               (weight (if (caddr cfpair)
+                           (caddr cfpair)
+                         zy*default-font-weight))
+               (append (cadddr cfpair));
+               (spec (font-spec :family font
+                                :weight weight)))
+          (when (find-font spec)
+            (if (listp charset-or-charsets)
+                (dolist (charset charset-or-charsets)
+                  (set-fontset-font fontset charset spec frame
+                                    append))
+              (set-fontset-font fontset charset-or-charsets spec
+                                frame append)))))
+      ;; 如果 FONTSET 是新創建的，則爲 FACE 指定 :fontset 屬性。
+      (when fontset-is-new
+        (set-face-attribute face frame :fontset fontset))))
 #+end_src
 
 *** 設置字體列表
@@ -568,22 +587,31 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 爲默認和變寬兩種 face 設置字體。
 
 #+begin_src emacs-lisp
+  (defconst zy*fontlist-default-preset
+    '(("Iosevka Term Slab" 16)
+        ((kana han cjk-misc bopomofo) "GenYoGothic TW"))
+    "Preset value of `zy/fontlist-default'")
+
+  (defconst zy*fontlist-vp-preset
+    '(("Libertinus Serif" 18)
+        ((kana han cjk-misc bopomofo) "GenYoMin TW"))
+    "Preset value of `zy/fontlist-vp'")
+
   (defvar zy/fontlist-default
     (if (boundp 'zy/fontlist-default)
         zy/fontlist-default
-      '("Sarasa Mono Slab TC" 16
-        ((kana han cjk-misc bopomofo) "Sarasa Mono Slab TC")))
+      zy*fontlist-default-preset)
     "Fontlist used for most occasions.")
 
-  (defvar zy/fontlist-variable-pitch
-    (if (boundp 'zy/fontlist-variable-pitch)
-        zy/fontlist-variable-pitch
-      '("Noto Serif" 18
-        ((kana han cjk-misc bopomofo) "Noto Serif CJK TC")))
+  (defvar zy/fontlist-vp
+    (if (boundp 'zy/fontlist-vp)
+        zy/fontlist-vp
+      zy*fontlist-vp-preset)
     "Fontlist used for the variable-pitch face.")
 
-  (zy/apply-fontlist zy/fontlist-default 'default)
-  (zy/apply-fontlist zy/fontlist-variable-pitch 'variable-pitch)
+  (when (display-graphic-p)
+    (zy/apply-fontlist zy/fontlist-default 'default)
+    (zy/apply-fontlist zy/fontlist-vp 'variable-pitch))
 #+end_src
 
 根據以下內容判斷等寬性：
@@ -601,7 +629,10 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
         darkroom-text-scale-increase 1)
   (general-define-key
    :keymaps 'zy/leader-config-map
-   "d" #'darkroom-tentative-mode)
+   "d" #'darkroom-mode)
+  (zy!add-hook 'darkroom-mode-hook
+    (hl-line-mode)
+    (variable-pitch-mode))
 #+end_src
 
 * Lingual
