@@ -708,7 +708,7 @@ You can customise font by setting these variables in ~custom.el~:
         "Fontlist used for 'variable-pitch' face.")
 
       (defconst zy*fontlist-title-preset
-        `(,(zy!pick-main-font ("Roboto")
+        `(,(zy!pick-main-font ("Roboto Slab")
                               ("Noto Sans")
                               ("Calibri")
                               ("sans"))
@@ -808,7 +808,7 @@ Make everything UTF-8.
       (variable-pitch-mode +1)
       (visual-line-mode +1))
     (with-eval-after-load 'org
-      ;; Font settings.
+      ;; Headline faces.
       (when (display-graphic-p)
         (zy!apply-fontlist zy/fontlist-title
                            'org-level-1
@@ -820,20 +820,24 @@ Make everything UTF-8.
                            'org-level-7
                            'org-level-8)
         (dolist (level (number-sequence 1 8))
-          (eval
-           (append
-            '(set-face-attribute)
-            `(',(intern (format "org-level-%d" level)))
-            '(nil :height)
-            `(,(string-to-number
-                (format "1.%d" (- 4 level)))))))
+          (set-face-attribute
+           (intern (format "org-level-%d" level))
+           nil
+           :height
+           (string-to-number (format "1.%d" (- 4 level)))
+           :weight
+           (if (< level 3)
+               'bold
+             'semi-bold)))
+        ;; Markup faces.
         (zy!apply-fontlist (zy/fontlist-without-size
                             zy/fontlist-default)
                            'org-code
                            'org-verbatim)
+        ;; Block faces.
         (zy!apply-fontlist zy/fontlist-default
                            'org-block))))
-#+end_src
+#+END_src
 
 *** GTD System
 
