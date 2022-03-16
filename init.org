@@ -10,7 +10,7 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 #+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
   (setq default-frame-alist
-        '((width . 120)
+        '((width . 100)
           (height . 45)))
   (setq
    frame-inhibit-implied-resize t
@@ -510,13 +510,9 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 
 其中，若有任何字體的值爲 nil，或是在系統中沒有安裝，則會跳過它；字號和字重都可以省去或爲 nil，代表使用默認値；當 APPEND 爲 t 時，會附加在之原有的設置之後（與 ~set-fontset-font~ 的參數一致）。
 
-下面定義了函數​~zy/apply-fontlist~​，用來將某一個字體列表應用到某一個 face：
+下面定義了函數 ~zy/apply-fontlist~​，用來將某一個字體列表應用到某一個 face：
 
 #+begin_src emacs-lisp
-  (defconst zy*default-font-size 16
-    "Default font size.")
-  (defconst zy*default-font-weight 'normal
-    "Default font weight.")
   (defvar zy/zyfs-counter 0
     "How many fontset have been created by ZyEmacs.")
 
@@ -530,27 +526,27 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
   default for new frames only."
     (let* ((face (if face face 'default))
            (main (car fontlist))
-           (main-font (car main))
-           (main-size (if (cadr main)
-                          (cadr main)
-                        zy*default-font-size))
-           (main-weight (if (caddr main)
-                            (caddr main)
-                          zy*default-font-weight))
-           (cflist (cdr fontlist))
+           (main-spec-expr '(font-spec))
+           main-spec
            fontset
-           (fontset-is-new nil))
+           (fontset-is-new nil)
+           (cflist (cdr fontlist)))
       ;; 設置主字體。
-      (unless (find-font (font-spec :family main-font
-                                    :weight main-weight))
-        (setq main-font nil))
-      (set-face-attribute
-       face
-       frame
-       :font (font-spec :family main-font
-                        :size main-size
-                        :weight main-weight))
-      ;; 獲取 FACE 的 fontset。如果是 'unspecified'，則新建一個 fontset。
+      (when (car main)
+        (setq main-spec-expr
+              (append main-spec-expr `(:family ,(car main)))))
+      (when (cadr main)
+        (setq main-spec-expr
+              (append main-spec-expr `(:size ,(cadr main)))))
+      (when (caddr main)
+        (setq main-spec-expr
+              (append main-spec-expr `(:weight ,(caddr main)))))
+      (setq main-spec (eval main-spec-expr))
+      (when (find-font main-spec)
+        (set-face-attribute face frame :font main-spec))
+      (unless (cadr main)
+        (set-face-attribute face frame :height 'unspecified))
+      ;; 獲取 FACE 的 :fontset 屬性。如果是 'unspecified'，則新建一個 fontset。
       (setq fontset (face-attribute face :fontset frame))
       (when (equal fontset 'unspecified)
         (setq fontset
@@ -563,13 +559,16 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
       ;; 遍歷 CFLIST，爲 FONTSET 的各個字符集設置字體。
       (dolist (cfpair cflist)
         (let* ((charset-or-charsets (car cfpair))
-               (font (cadr cfpair))
-               (weight (if (caddr cfpair)
-                           (caddr cfpair)
-                         zy*default-font-weight))
                (append (cadddr cfpair));
-               (spec (font-spec :family font
-                                :weight weight)))
+               (spec-expr '(font-spec))
+               spec)
+          (when (cadr cfpair)
+            (setq spec-expr
+                  (append spec-expr `(:family ,(cadr cfpair)))))
+          (when (caddr cfpair)
+            (setq spec-expr
+                  (append spec-expr `(:weight ,(caddr cfpair)))))
+          (setq spec (eval spec-expr))
           (when (find-font spec)
             (if (listp charset-or-charsets)
                 (dolist (charset charset-or-charsets)
@@ -580,6 +579,22 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
       ;; 如果 FONTSET 是新創建的，則爲 FACE 指定 :fontset 屬性。
       (when fontset-is-new
         (set-face-attribute face frame :fontset fontset))))
+#+end_src
+
+*** ~zy!apply-fontlist~
+
+Apply a fontlist to multiple faces at once.
+
+#+begin_src emacs-lisp
+  (defmacro zy!apply-fontlist (fontlist &rest faces)
+    "Apply FONTLIST to each face in FACES."
+    (let ((body '(progn)))
+      (dolist (face faces)
+        (add-to-list
+         'body
+         `(zy/apply-fontlist ,fontlist ,face nil)
+         'append))
+      body))
 #+end_src
 
 *** ~zy!pick-font~ and ~zy!pick-main-font~
@@ -608,16 +623,22 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
            (result nil))
        (while --mains-tail--
          (setq main (car --mains-tail--))
-         (let ((main-font (car main))
-               (main-size (if (cadr main)
-                              (cadr main)
-                            zy*default-font-size))
-               (main-weight (if (caddr main)
-                                (caddr main)
-                              zy*default-font-weight)))
-           (if (find-font (font-spec :family main-font
-                                     :size main-size
-                                     :weight main-weight))
+         (let ((main-spec-expr '(font-spec))
+               main-sepc)
+           (when (car main)
+             (setq main-spec-expr
+                   (append main-spec-expr
+                           `(:family ,(car main)))))
+           (when (cadr main)
+             (setq main-spec-expr
+                   (append main-spec-expr
+                           `(:size ,(cadr main)))))
+           (when (caddr main)
+             (setq main-spec-expr
+                   (append main-spec-expr
+                           `(:weight ,(caddr main)))))
+           (setq main-spec (eval main-spec-expr))
+           (if (find-font main-spec)
                (setq result main
                      --mains-tail-- nil)
              (setq --mains-tail--
@@ -625,9 +646,25 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
        result))
 #+end_src
 
+*** ~zy/fontlist-without-size~
+
+#+begin_src emacs-lisp
+  (defun zy/fontlist-without-size (fontlist)
+    "Return a copy of FONTLIST, where size info is omitted."
+    (let* ((new-fontlist (copy-sequence fontlist))
+           (main (car new-fontlist)))
+      (when (cdr main)
+        (setcar (cdr main) nil))
+      new-fontlist))
+#+end_src
+
 *** Create Fontlists
 
-You can customise font by setting ~zy/fontlist-default~ and ~zy/fontlist-varpitch~ in ~custom.el~.
+You can customise font by setting these variables in ~custom.el~:
+
+- ~zy/fontlist-default~
+- ~zy/fontlist-varpitch~
+- ~zy/fontlist-title~
 
 #+begin_src emacs-lisp
   (when (display-graphic-p)
@@ -660,7 +697,7 @@ You can customise font by setting ~zy/fontlist-default~ and ~zy/fontlist-varpitc
           ((han cjk-misc bopomofo)
            ,(zy!pick-font "GenYoMin TW"
                           "Noto Serif CJK TC"
-                          "Source Han Sans TC"
+                          "Source Han Serif TC"
                           "SimSun")))
         "Preset value of `zy/fontlist-varpitch'")
 
@@ -669,6 +706,24 @@ You can customise font by setting ~zy/fontlist-default~ and ~zy/fontlist-varpitc
             zy/fontlist-varpitch
           zy*fontlist-varpitch-preset)
         "Fontlist used for 'variable-pitch' face.")
+
+      (defconst zy*fontlist-title-preset
+        `(,(zy!pick-main-font ("Roboto")
+                              ("Noto Sans")
+                              ("Calibri")
+                              ("sans"))
+          ((han cjk-misc bopomofo)
+           ,(zy!pick-font "GenYoGothic TW"
+                          "Noto Sans CJK TC"
+                          "Source Han Sans TC"
+                          "Microsoft YaHei")))
+        "Preset value of `zy/fontlist-title'")
+
+      (defvar zy/fontlist-title
+        (if (boundp 'zy/fontlist-title)
+            zy/fontlist-title
+          zy*fontlist-title-preset)
+        "Fontlist used for titles.")
 
       (zy/apply-fontlist zy/fontlist-default 'default)
       (zy/apply-fontlist zy/fontlist-varpitch 'variable-pitch)))
@@ -681,7 +736,7 @@ You can customise font by setting ~zy/fontlist-default~ and ~zy/fontlist-varpitc
 mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 #+end_src
 
-** Darkroom Mode
+** Distraction-Free Mode
 
 #+begin_src emacs-lisp
   (straight-use-package 'darkroom)
@@ -691,8 +746,9 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
    :keymaps 'zy/leader-config-map
    "d" #'darkroom-mode)
   (zy!add-hook 'darkroom-mode-hook
-    (hl-line-mode 'toggle)
-    (variable-pitch-mode 'toggle))
+    (let ((inhibit-message t))
+      (delete-other-windows))
+    (hl-line-mode 'toggle))
 #+end_src
 
 * Lingual
@@ -743,13 +799,40 @@ Make everything UTF-8.
 #+begin_src emacs-lisp
   (setup (:pkg (org :type git :host github :repo "bzg/org-mode"))
     (setq org-attach-id-dir "_org-att"
-	  org-log-done 'time
-	  org-src-window-setup 'current-window
-	  org-tags-column 0)
+          org-log-done 'time
+          org-src-window-setup 'current-window
+          org-tags-column 0)
     (zy!add-hook 'org-mode-hook
       (display-line-numbers-mode -1)
       (org-indent-mode +1)
-      (visual-line-mode +1)))
+      (variable-pitch-mode +1)
+      (visual-line-mode +1))
+    (with-eval-after-load 'org
+      ;; Font settings.
+      (when (display-graphic-p)
+        (zy!apply-fontlist zy/fontlist-title
+                           'org-level-1
+                           'org-level-2
+                           'org-level-3
+                           'org-level-4
+                           'org-level-5
+                           'org-level-6
+                           'org-level-7
+                           'org-level-8)
+        (dolist (level (number-sequence 1 8))
+          (eval
+           (append
+            '(set-face-attribute)
+            `(',(intern (format "org-level-%d" level)))
+            '(nil :height)
+            `(,(string-to-number
+                (format "1.%d" (- 4 level)))))))
+        (zy!apply-fontlist (zy/fontlist-without-size
+                            zy/fontlist-default)
+                           'org-code
+                           'org-verbatim)
+        (zy!apply-fontlist zy/fontlist-default
+                           'org-block))))
 #+end_src
 
 *** GTD System
