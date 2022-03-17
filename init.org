@@ -9,10 +9,7 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 
 #+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
-  (setq default-frame-alist '((width . 100)
-                              (height . 45))
-        initial-frame-alist default-frame-alist
-        frame-inhibit-implied-resize t
+  (setq frame-inhibit-implied-resize t
         inhibit-startup-message t
         native-comp-async-report-warnings-errors nil
         package-enable-at-startup nil)
@@ -124,26 +121,14 @@ Zybox is the collection of my personal files.
 
 ** Candies
 
-*** ~zy!add-hook~
+*** ~zy!add-hook~ and ~zy!add-hooks~
 
 #+begin_src emacs-lisp
   (defmacro zy!add-hook (hook &rest body)
     "Add a lambda function of BODY to the value of HOOK."
     (declare (indent 1) (debug (form def-body)))
     `(add-hook ,hook (lambda () ,@body)))
-#+end_src
 
-This macro enables grouping several expressions into one hook, like this
-
-#+begin_src emacs-lisp :tangle no
-  (zy!add-hook 'some-hook
-    (do-something)
-    (do-something-else))
-#+end_src
-
-*** ~zy!add-hooks~
-
-#+begin_src emacs-lisp
   (defmacro zy!add-hooks (hook-list &rest body)
     "Add a lambda function of BODY to each hook in HOOK-LIST."
     (declare (indent 1) (debug (form def-body)))
@@ -156,12 +141,24 @@ This macro enables grouping several expressions into one hook, like this
       result))
 #+end_src
 
-This macro enables adding something to multiple hooks simultaneously, like this:
+Examples of these macros:
 
 #+begin_src emacs-lisp :tangle no
+  (zy!add-hook 'some-hook
+    (do-something)
+    (do-something-else))
   (zy!add-hooks ('some-hook 'another-hook)
     (do-something)
     (do-something-else))
+#+end_src
+
+*** ~zy!run-after-idle~
+
+#+begin_src emacs-lisp
+  (defmacro zy!run-after-idle (secs &rest body)
+    "Run BODY after being idle for SECS seconds."
+    (declare (indent 1) (debug (form def-body)))
+    `(run-with-idle-timer ,secs nil (lambda () ,@body)))
 #+end_src
 
 ** Straight
@@ -382,7 +379,10 @@ Register utilities have not been configured.
 ** Emacs Server
 
 #+begin_src emacs-lisp
-  (server-start)
+  (zy!run-after-idle 1
+    (require 'server)
+    (unless (server-running-p)
+      (server-start)))
 #+end_src
 
 * General Configuration
@@ -743,11 +743,56 @@ You can customise font by setting these variables in ~custom.el~:
 mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 #+end_src
 
+** Frame Size
+
+*** Frame Size Definition
+
+#+begin_src emacs-lisp
+  (defvar zy/frame-size-standard '(100 40)
+    "Standard frame size for new frames.")
+  (defvar zy/frame-size-darkroom '(120 40)
+    "Standard frame size for Darkroom mode.")
+#+end_src
+
+*** Resize New Frames
+
+#+begin_src emacs-lisp
+  (defun zy/resize-frame (&optional frame no-rem)
+    "Resize FRAME to standard size.
+
+  If NO-REM is nil or omitted, remember the frame size before
+  resize in the 'width-rem' and 'height-rem' frame parameters."
+    (interactive)
+    (let* ((standard-size (if (and (boundp 'darkroom-mode)
+                                   darkroom-mode)
+                              zy/frame-size-darkroom
+                            zy/frame-size-standard))
+           (is-standard (and
+                         (= (frame-width) (car standard-size))
+                         (= (frame-height) (cadr standard-size))))
+           (width-rem (frame-parameter frame 'width-rem))
+           (height-rem (frame-parameter frame 'height-rem)))
+      (unless (or no-rem is-standard)
+        (modify-frame-parameters frame
+                                 `((width-rem . ,(frame-width))
+                                   (height-rem . ,(frame-height)))))
+      (if (and is-standard width-rem)
+          (set-frame-size frame width-rem height-rem)
+        (set-frame-size frame
+                        (car standard-size)
+                        (cadr standard-size)))))
+
+  (add-to-list 'after-make-frame-functions
+               #'zy/resize-frame)
+  (zy!add-hook 'emacs-startup-hook
+    (zy/resize-frame nil 'no-rem))
+#+end_src
+
 ** Distraction-Free Mode
 
 #+begin_src emacs-lisp
   (straight-use-package 'darkroom)
-  (setq darkroom-margins 0.05
+  (setq darkroom-margins 0.1
         darkroom-text-scale-increase 1)
   (general-define-key
    :keymaps 'zy/leader-config-map
@@ -756,6 +801,33 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
     (let ((inhibit-message t))
       (delete-other-windows))
     (hl-line-mode 'toggle))
+
+  (defun zy/darkroom-switch-size (&optional frame)
+    "Switch frame size for `darkroom-mode'.
+
+  - If 'darkroom-mode' is enabled, and current frame size is
+    `zy/frame-size-standard', resize to `zy/frame-size-darkroom'.
+  - If 'darkroom-mode' is disabled, and current frame size is
+    `zy/frame-size-darkroom', resize to `zy/frame-size-standard'.
+  - Otherwise, do nothing."
+    (let* ((cur-size `(,(frame-parameter frame 'width)
+                       ,(frame-parameter frame 'height)))
+           (s2d (and (boundp 'darkroom-mode)
+                     darkroom-mode
+                     (equal cur-size zy/frame-size-standard)))
+           (d2s (and (not (and (boundp 'darkroom-mode)
+                               darkroom-mode))
+                     (equal cur-size zy/frame-size-darkroom))))
+      (cond
+       (s2d (set-frame-size frame
+                            (car zy/frame-size-darkroom)
+                            (cadr zy/frame-size-darkroom)))
+       (d2s (set-frame-size frame
+                            (car zy/frame-size-standard)
+                            (cadr zy/frame-size-standard)))
+       (t nil))))
+
+  (add-hook 'darkroom-mode-hook #'zy/darkroom-switch-size)
 #+end_src
 
 * Lingual
@@ -841,7 +913,7 @@ Make everything UTF-8.
                            'org-code
                            'org-verbatim)
         ;; Block faces.
-        (zy!apply-fontlist zy/fontlist-default
+        (zy!apply-fontlist zy/fontlist-default-without-size
                            'org-block))))
 #+END_src
 
