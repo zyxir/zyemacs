@@ -9,14 +9,13 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 
 #+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
-  (setq default-frame-alist
-        '((width . 100)
-          (height . 45)))
-  (setq
-   frame-inhibit-implied-resize t
-   inhibit-startup-message t
-   native-comp-async-report-warnings-errors nil
-   package-enable-at-startup nil)
+  (setq default-frame-alist '((width . 100)
+                              (height . 45))
+        initial-frame-alist default-frame-alist
+        frame-inhibit-implied-resize t
+        inhibit-startup-message t
+        native-comp-async-report-warnings-errors nil
+        package-enable-at-startup nil)
 #+end_src
 
 ** Startup Timer
@@ -576,12 +575,26 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
                                     append))
               (set-fontset-font fontset charset-or-charsets spec
                                 frame append)))))
+      ;; 額外地，把 latin 字符集的字體設置爲主字體。
+      (set-fontset-font fontset 'latin main-spec frame)
       ;; 如果 FONTSET 是新創建的，則爲 FACE 指定 :fontset 屬性。
       (when fontset-is-new
         (set-face-attribute face frame :fontset fontset))))
 #+end_src
 
-*** ~zy!apply-fontlist~
+Get a copy of the fontlist without the size information.
+
+#+begin_src emacs-lisp
+  (defun zy/copy-fontlist-without-size (fontlist)
+    "Return a copy of FONTLIST, where size info is omitted."
+    (let* ((new-fontlist (copy-tree fontlist))
+           (main (car new-fontlist)))
+      (when (cdr main)
+        (setcar (cdr main) nil))
+      new-fontlist))
+#+end_src
+
+*** Font Macros
 
 Apply a fontlist to multiple faces at once.
 
@@ -597,7 +610,7 @@ Apply a fontlist to multiple faces at once.
       body))
 #+end_src
 
-*** ~zy!pick-font~ and ~zy!pick-main-font~
+Fick the first font available.
 
 #+begin_src emacs-lisp
   (defmacro zy!pick-font (&rest fonts)
@@ -646,18 +659,6 @@ Apply a fontlist to multiple faces at once.
        result))
 #+end_src
 
-*** ~zy/fontlist-without-size~
-
-#+begin_src emacs-lisp
-  (defun zy/fontlist-without-size (fontlist)
-    "Return a copy of FONTLIST, where size info is omitted."
-    (let* ((new-fontlist (copy-sequence fontlist))
-           (main (car new-fontlist)))
-      (when (cdr main)
-        (setcar (cdr main) nil))
-      new-fontlist))
-#+end_src
-
 *** Create Fontlists
 
 You can customise font by setting these variables in ~custom.el~:
@@ -675,12 +676,15 @@ You can customise font by setting these variables in ~custom.el~:
                               ("Iosevka Term Slab" 16)
                               ("Consolas" 16)
                               ("monospace" 16))
-          ((han cjk-misc bopomofo)
+          ((han cjk-misc bopomofo kana)
            ,(zy!pick-font "GenYoGothic TW"
                           "Sarasa Mono Slab TC"
                           "Noto Sans CJK TC"
                           "Source Han Sans TC"
-                          "Microsoft YaHei")))
+                          "Microsoft YaHei"))
+          (symbol
+           ,(zy!pick-font "Noto Sans Symbols"
+                          "Wingdings")))
         "Preset value of `zy/fontlist-default'")
 
       (defvar zy/fontlist-default
@@ -689,16 +693,18 @@ You can customise font by setting these variables in ~custom.el~:
           zy*fontlist-default-preset)
         "Fontlist used on most occasions.")
 
+      (defvar zy/fontlist-default-without-size
+        (zy/copy-fontlist-without-size zy/fontlist-default)
+        "Fontlist used on most occasions, without size information.")
+
       (defconst zy*fontlist-varpitch-preset
-        `(,(zy!pick-main-font ("Libertinus Serif" 18)
-                              ("Noto Serif" 18)
+        `(,(zy!pick-main-font ("Noto Serif" 18)
                               ("Times New Roman" 18)
                               ("serif" 18))
-          ((han cjk-misc bopomofo)
+          ((han cjk-misc bopomofo kana)
            ,(zy!pick-font "GenYoMin TW"
-                          "Noto Serif CJK TC"
                           "Source Han Serif TC"
-                          "SimSun")))
+                          "STSong")))
         "Preset value of `zy/fontlist-varpitch'")
 
       (defvar zy/fontlist-varpitch
@@ -712,10 +718,11 @@ You can customise font by setting these variables in ~custom.el~:
                               ("Noto Sans")
                               ("Calibri")
                               ("sans"))
-          ((han cjk-misc bopomofo)
+          ((han cjk-misc bopomofo kana)
            ,(zy!pick-font "GenYoGothic TW"
-                          "Noto Sans CJK TC"
+                          "Sarasa Mono Slab TC"
                           "Source Han Sans TC"
+                          "Noto Sans CJK TC"
                           "Microsoft YaHei")))
         "Preset value of `zy/fontlist-title'")
 
@@ -830,8 +837,7 @@ Make everything UTF-8.
                'bold
              'semi-bold)))
         ;; Markup faces.
-        (zy!apply-fontlist (zy/fontlist-without-size
-                            zy/fontlist-default)
+        (zy!apply-fontlist zy/fontlist-default-without-size
                            'org-code
                            'org-verbatim)
         ;; Block faces.
@@ -912,7 +918,11 @@ Make everything UTF-8.
           org-indent-mode-turns-on-hiding-stars nil
           org-superstar-item-bullet-alist '((42 . #x2605)
                                             (43 . #x2666)
-                                            (45 . #x27a4))))
+                                            (45 . #x27a4)))
+    (with-eval-after-load 'org-superstar
+      (zy!apply-fontlist zy/fontlist-default-without-size
+                         'org-superstar-header-bullet
+                         'org-superstar-item)))
 #+end_src
 
 *** Org-Journal
