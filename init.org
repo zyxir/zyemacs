@@ -610,7 +610,7 @@ Apply a fontlist to multiple faces at once.
       body))
 #+end_src
 
-Fick the first font available.
+Pick the first font available.
 
 #+begin_src emacs-lisp
   (defmacro zy!pick-font (&rest fonts)
@@ -698,7 +698,7 @@ You can customise font by setting these variables in ~custom.el~:
         "Fontlist used on most occasions, without size information.")
 
       (defconst zy*fontlist-varpitch-preset
-        `(,(zy!pick-main-font ("Noto Serif" 18)
+        `(,(zy!pick-main-font ("IBM Plex Serif" 18)
                               ("Times New Roman" 18)
                               ("serif" 18))
           ((han cjk-misc bopomofo kana)
