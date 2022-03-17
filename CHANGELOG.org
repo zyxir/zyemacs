@@ -6,6 +6,7 @@
 
 - Fully rewritten in the style of literate programming.
 - Many unnecessary packages removed in persuit of minimalism.
+- A fine-grained font system.
 
 * Version 2.x
 
