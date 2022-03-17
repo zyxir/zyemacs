@@ -793,32 +793,44 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
       (delete-other-windows))
     (hl-line-mode 'toggle))
 
-  (defun zy/darkroom-switch-size (&optional frame)
-    "Switch frame size for `darkroom-mode'.
+  (with-eval-after-load 'darkroom
+    (defun zy/darkroom-switch-size (&optional frame)
+      "Switch FRAME size for `darkroom-mode'.
 
-  - If 'darkroom-mode' is enabled, and current frame size is
-    `zy/frame-size-standard', resize to `zy/frame-size-darkroom'.
-  - If 'darkroom-mode' is disabled, and current frame size is
-    `zy/frame-size-darkroom', resize to `zy/frame-size-standard'.
-  - Otherwise, do nothing."
-    (let* ((cur-size `(,(frame-parameter frame 'width)
-                       ,(frame-parameter frame 'height)))
-           (s2d (and (boundp 'darkroom-mode)
-                     darkroom-mode
-                     (equal cur-size zy/frame-size-standard)))
-           (d2s (and (not (and (boundp 'darkroom-mode)
-                               darkroom-mode))
-                     (equal cur-size zy/frame-size-darkroom))))
-      (cond
-       (s2d (set-frame-size frame
-                            (car zy/frame-size-darkroom)
-                            (cadr zy/frame-size-darkroom)))
-       (d2s (set-frame-size frame
-                            (car zy/frame-size-standard)
-                            (cadr zy/frame-size-standard)))
-       (t nil))))
+  All actions below assumes that there is only one window in
+  FRAME. Otherwise, do nothing.
 
-  (add-hook 'darkroom-mode-hook #'zy/darkroom-switch-size)
+  If 'darkroom-mode' is enabled, and current frame size is
+  `zy/frame-size-standard', resize to `zy/frame-size-darkroom'.
+
+  If 'darkroom-mode' is disabled, and current frame size is
+  `zy/frame-size-darkroom', resize to `zy/frame-size-standard'.
+
+  Otherwise, do nothing."
+      (when (equal (progn
+                     (when frame (select-frame frame))
+                     (count-windows))
+                   1)
+        (let* ((cur-size `(,(frame-parameter frame 'width)
+                           ,(frame-parameter frame 'height)))
+               (s2d (and (boundp 'darkroom-mode)
+                         darkroom-mode
+                         (equal cur-size zy/frame-size-standard)))
+               (d2s (and (not (and (boundp 'darkroom-mode)
+                                   darkroom-mode))
+                         (equal cur-size zy/frame-size-darkroom))))
+          (cond
+           (s2d (set-frame-size frame
+                                (car zy/frame-size-darkroom)
+                                (cadr zy/frame-size-darkroom)))
+           (d2s (set-frame-size frame
+                                (car zy/frame-size-standard)
+                                (cadr zy/frame-size-standard)))
+           (t nil)))))
+
+    (add-hook 'darkroom-mode-hook #'zy/darkroom-switch-size)
+    (add-to-list 'window-buffer-change-functions
+                 #'zy/darkroom-switch-size))
 #+end_src
 
 * Lingual
