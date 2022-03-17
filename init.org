@@ -953,12 +953,17 @@ Make everything UTF-8.
                                  "|"
                                  "DONE(d)")
                        (sequence "|"
-                                 "CANCELED(c)"))
+                                 "CANCELED(c)")
+                       (sequence "BUSY(b)"
+                                 "NOT BUSY(n)"
+                                 "|"))
    org-todo-keyword-faces '(("TODO" . (:foreground "#B71C1C" :weight bold))
                             ("IN PROCESS" . (:foreground "#8BC34A" :weight bold))
                             ("POSTPONED" . (:foreground "#F57C00" :weight bold))
                             ("DONE" . (:foreground "#33691E" :weight bold))
-                            ("CANCELED" . (:foreground "#757575" :weight bold))))
+                            ("CANCELED" . (:foreground "#757575" :weight bold))
+                            ("BUSY" . (:foreground "#B916FF" :weight bold))
+                            ("NOT BUSY" . (:foreground "#DE90FF" :weight bold))))
 
   (general-define-key
    :keymaps 'zy/leader-map
