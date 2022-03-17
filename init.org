@@ -1010,7 +1010,7 @@ Make everything UTF-8.
       (setq org-journal-dir (expand-file-name "org/org-journal" zy/zybox-path)
             org-journal-file-format "%F.org"
             org-journal-date-format "%F %a W%V\n"
-            org-journal-date-prefix "#+TITLE: "
+            org-journal-date-prefix "#+title: "
             org-journal-time-format "%R "
             org-journal-time-format-post-midnight "%R (midnight) "
             org-journal-time-prefix "\n* "
