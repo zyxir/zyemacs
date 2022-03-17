@@ -1,5 +1,5 @@
 #+html: <div align="center">
-#+title: ZyEmacs
+* ZyEmacs
 [[file:init.org][Config]] ・ [[file:SCREENSHOTS.org][Screenshots]] ・[[file:CHANGELOG.org][Changelog]]
 #+html: </div>
 
@@ -11,7 +11,7 @@ This is my Emacs configuration focused on being
 
 The whole config is inside [[./init.org][init.org]].
 
-* Usage
+** Usage
 
 I use Emacs in WSL (Windows Subsystem for Linux) for
 
@@ -19,7 +19,7 @@ I use Emacs in WSL (Windows Subsystem for Linux) for
 - Writing documents in: LaTeX, markdown, org.
 - Coding in: Python.
 
-* Links
+** Links
 
 This configuration is inspired by:
 
