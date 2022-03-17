@@ -427,15 +427,6 @@ Register utilities have not been configured.
     (super-save-mode +1))
 #+end_src
 
-** Avy
-
-#+begin_src emacs-lisp
-  (setup (:pkg avy)
-    (general-define-key
-     "M-r" 'avy-goto-char
-     "M-t" 'avy-goto-char-timer))
-#+end_src
-
 ** Magit
 
 #+begin_src emacs-lisp
