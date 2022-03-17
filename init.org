@@ -754,24 +754,25 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   If NO-REM is nil or omitted, remember the frame size before
   resize in the 'width-rem' and 'height-rem' frame parameters."
     (interactive)
-    (let* ((standard-size (if (and (boundp 'darkroom-mode)
-                                   darkroom-mode)
-                              zy/frame-size-darkroom
-                            zy/frame-size-standard))
-           (is-standard (and
-                         (= (frame-width) (car standard-size))
-                         (= (frame-height) (cadr standard-size))))
-           (width-rem (frame-parameter frame 'width-rem))
-           (height-rem (frame-parameter frame 'height-rem)))
-      (unless (or no-rem is-standard)
-        (modify-frame-parameters frame
-                                 `((width-rem . ,(frame-width))
-                                   (height-rem . ,(frame-height)))))
-      (if (and is-standard width-rem)
-          (set-frame-size frame width-rem height-rem)
-        (set-frame-size frame
-                        (car standard-size)
-                        (cadr standard-size)))))
+    (when (display-graphic-p)
+      (let* ((standard-size (if (and (boundp 'darkroom-mode)
+                                     darkroom-mode)
+                                zy/frame-size-darkroom
+                              zy/frame-size-standard))
+             (is-standard (and
+                           (= (frame-width) (car standard-size))
+                           (= (frame-height) (cadr standard-size))))
+             (width-rem (frame-parameter frame 'width-rem))
+             (height-rem (frame-parameter frame 'height-rem)))
+        (unless (or no-rem is-standard)
+          (modify-frame-parameters frame
+                                   `((width-rem . ,(frame-width))
+                                     (height-rem . ,(frame-height)))))
+        (if (and is-standard width-rem)
+            (set-frame-size frame width-rem height-rem)
+          (set-frame-size frame
+                          (car standard-size)
+                          (cadr standard-size))))))
 
   (add-to-list 'after-make-frame-functions
                #'zy/resize-frame)
@@ -798,7 +799,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
       "Switch FRAME size for `darkroom-mode'.
 
   All actions below assumes that there is only one window in
-  FRAME. Otherwise, do nothing.
+  FRAME, and GUI is active. Otherwise, do nothing.
 
   If 'darkroom-mode' is enabled, and current frame size is
   `zy/frame-size-standard', resize to `zy/frame-size-darkroom'.
@@ -807,10 +808,11 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   `zy/frame-size-darkroom', resize to `zy/frame-size-standard'.
 
   Otherwise, do nothing."
-      (when (equal (progn
-                     (when frame (select-frame frame))
-                     (count-windows))
-                   1)
+      (when (and (display-graphic-p)
+                 (equal (progn
+                          (when frame (select-frame frame))
+                          (count-windows))
+                        1)
         (let* ((cur-size `(,(frame-parameter frame 'width)
                            ,(frame-parameter frame 'height)))
                (s2d (and (boundp 'darkroom-mode)
