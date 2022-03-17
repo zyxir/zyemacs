@@ -1,6 +1,6 @@
 #+html: <div align="center">
 * ZyEmacs
-[[file:init.org][Config]] ・ [[file:SCREENSHOTS.org][Screenshots]] ・[[file:CHANGELOG.org][Changelog]]
+[[file:init.org][Config]] · [[file:SCREENSHOTS.org][Screenshots]] ·[[file:CHANGELOG.org][Changelog]]
 #+html: </div>
 
 This is my Emacs configuration focused on being

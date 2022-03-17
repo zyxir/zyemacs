@@ -1,6 +1,15 @@
 #+title: init.org
 #+property: header-args:emacs-lisp :tangle ~/.emacs.d/init.el
 
+Press =C-c C-v t= (~org-babel-tangle~) while reading this file inside Emacs, to generate the actual
+configuration file, ~init.el~. Relaunch Emacs to make the configuration take effect.
+
+Alternatively, you can use this command in Shell to generate the configuration file: (replace "/path/to/init.org" with the actual path of this file)
+
+#+begin_src shell
+  emacs --batch --eval "(require 'org)" --eval '(org-babel-tangle-file "/path/to/init.org")'
+#+end_src
+
 * Startup
 
 ** Early Init
