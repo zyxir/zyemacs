@@ -1,6 +1,10 @@
 #+title: init.org
 #+property: header-args:emacs-lisp :tangle ~/.emacs.d/init.el
 
+* Preface | 前言
+
+** How To Install | 如何安裝
+
 Press =C-c C-v t= (~org-babel-tangle~) while reading this file inside Emacs, to generate the actual
 configuration file, ~init.el~. Relaunch Emacs to make the configuration take effect.
 
@@ -10,7 +14,17 @@ Alternatively, you can use this command in Shell to generate the configuration f
   emacs --batch --eval "(require 'org)" --eval '(org-babel-tangle-file "/path/to/init.org")'
 #+end_src
 
-* Startup
+** Naming Conventions | 命名慣例
+
+This section is inspired by [[https://docs.doomemacs.org/latest/#/developers/conventions/emacs-lisp/naming-conventions][Doom Emacs naming conventions]].
+
+- ~zy/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
+- ~zy-[-]NAME~ :: A non-interactive function.
+- ~zy*NAME~ :: A constant.
+- ~zy$NAME~ :: A variable.
+- ~abc!~ :: A macro.
+
+* Startup | 啟動
 
 ** Early Init
 
@@ -47,16 +61,92 @@ Prohibit GC at startup, and adjust the threshold thereafter.
                     gc-cons-percentage 0.1)))
 #+end_src
 
+** Load libraries
+
+#+begin_src emacs-lisp
+  (require 'cl-lib)
+  (require 'cl-extra)
+#+end_src
+
+** My Macros
+
+*** Logical Macros
+
+#+begin_src emacs-lisp
+  (defmacro nor! (&rest conditions)
+    `(not (or ,@conditions)))
+  (defmacro nand! (&rest conditions)
+    `(not (and ,@conditions)))
+#+end_src
+
+*** Hook Macros
+
+#+begin_src emacs-lisp
+  (defmacro add-hooks! (hook-list function &optional depth local)
+    "Add FUNCTION to each hook in HOOK-LIST."
+    (let ((result '(progn))
+          (hook-list (cadr hook-list)))
+      (dolist (hook hook-list)
+        (add-to-list
+         'result
+         `(add-hook ',hook ,function ,depth ,local)
+         'append))
+      result))
+
+  (defmacro add-hook-lambda! (hook &rest body)
+    "Add a lambda function of BODY to the value of HOOK."
+    (declare (indent 1) (debug (form def-body)))
+    `(add-hook ,hook (lambda () ,@body)))
+
+  (defmacro add-hooks-lambda! (hook-list &rest body)
+    "Add a lambda function of BODY to each hook in HOOK-LIST."
+    (declare (indent 1) (debug (form def-body)))
+    (let ((result '(progn))
+          (hook-list (cadr hook-list)))
+      (dolist (hook hook-list)
+        (add-to-list
+         'result
+         `(add-hook ',hook (lambda () ,@body))
+         'append))
+      result))
+#+end_src
+
+Examples of these macros:
+
+#+begin_src emacs-lisp :tangle no
+  (add-hooks! '(some-hook another-hook) #'some-function)
+  (add-hook-lambda! 'some-hook
+    (do-something)
+    (do-something-else))
+  (add-hooks-lambda! '(some-hook another-hook)
+    (do-something)
+    (do-something-else))
+#+end_src
+
+*** Configuration Groupers
+
+#+begin_src emacs-lisp
+  (defmacro run-with-idle-timer! (secs &rest body)
+    "Run BODY after being idle for SECS seconds."
+    (declare (indent 1) (debug (form def-body)))
+    `(run-with-idle-timer ,secs nil (lambda () ,@body)))
+#+end_src
+
 ** Constants
 
 #+begin_src emacs-lisp
-  (defconst *win64* (eq system-type 'windows-nt)
+  (defconst zy*os-windows (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
-  (defconst *linux* (or (eq system-type 'gnu/linux)
-                      (eq system-type 'linux))
-    "If Emacs is run on Linux.")
-  (defconst *first-install* t
-    "Its value is t during the first install of ZyEmacs.")
+  (defconst zy*os-linux (or (eq system-type 'gnu/linux)
+                            (eq system-type 'linux))
+    "If Emacs is run on Linux.
+
+  Note that WSL is also Linux.")
+  (defconst zy*os-wsl (equal
+                       0
+                       (shell-command
+                        "grep -q microsoft /proc/version"))
+    "If Emacs is run on WSL.")
 #+end_src
 
 ** Load ~custom.el~
@@ -65,13 +155,6 @@ Prohibit GC at startup, and adjust the threshold thereafter.
   (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
   (when (file-exists-p custom-file)
     (load custom-file))
-#+end_src
-
-** Load libraries
-
-#+begin_src emacs-lisp
-  (require 'cl-lib)
-  (require 'cl-extra)
 #+end_src
 
 ** Lisp Path
@@ -91,17 +174,13 @@ Prohibit GC at startup, and adjust the threshold thereafter.
 Zybox is the collection of my personal files.
 
 #+begin_src emacs-lisp
-  (defvar zy/zybox-path nil
+  (defvar zy$zybox-path nil
     "The path of Zybox, the collection of all my files.
 
   This value should be manually set in custom.el, as it is
   different on different machines.")
 
-  (defun zy:file-directory-ret (path)
-    (when (file-directory-p path)
-      path))
-
-  (unless zy/zybox-path
+  (unless zy$zybox-path
     (let* ((zybox-possible-locs-win64
             '("C:\\Zybox"
               "C:\\Users\\zyxir\\Zybox"
@@ -114,61 +193,19 @@ Zybox is the collection of my personal files.
               "/mnt/c/Users/Documents/Zybox"))
            (guessed-zybox-path
             (cl-some
-             #'zy:file-directory-ret
+             (lambda (path) (when (file-directory-p path) path))
              (cond
-              (*win64* zybox-possible-locs-win64)
-              (*linux* zybox-possible-locs-linux)))))
+              (zy*os-windows zybox-possible-locs-win64)
+              (zy*os-linux zybox-possible-locs-linux)))))
       (if guessed-zybox-path
           (progn
-            (setq zy/zybox-path guessed-zybox-path)
-            (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy/zybox-path)
-            (customize-save-variable 'zy/zybox-path zy/zybox-path))
+            (setq zy$zybox-path guessed-zybox-path)
+            (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy$zybox-path)
+            (customize-save-variable 'zy$zybox-path zy$zybox-path))
         (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))))
 #+end_src
 
-* Utilities
-
-** Candies
-
-*** ~zy!add-hook~ and ~zy!add-hooks~
-
-#+begin_src emacs-lisp
-  (defmacro zy!add-hook (hook &rest body)
-    "Add a lambda function of BODY to the value of HOOK."
-    (declare (indent 1) (debug (form def-body)))
-    `(add-hook ,hook (lambda () ,@body)))
-
-  (defmacro zy!add-hooks (hook-list &rest body)
-    "Add a lambda function of BODY to each hook in HOOK-LIST."
-    (declare (indent 1) (debug (form def-body)))
-    (let ((result '(progn)))
-      (dolist (hook hook-list)
-        (add-to-list
-         'result
-         `(add-hook ,hook (lambda () ,@body))
-         'append))
-      result))
-#+end_src
-
-Examples of these macros:
-
-#+begin_src emacs-lisp :tangle no
-  (zy!add-hook 'some-hook
-    (do-something)
-    (do-something-else))
-  (zy!add-hooks ('some-hook 'another-hook)
-    (do-something)
-    (do-something-else))
-#+end_src
-
-*** ~zy!run-after-idle~
-
-#+begin_src emacs-lisp
-  (defmacro zy!run-after-idle (secs &rest body)
-    "Run BODY after being idle for SECS seconds."
-    (declare (indent 1) (debug (form def-body)))
-    `(run-with-idle-timer ,secs nil (lambda () ,@body)))
-#+end_src
+* Utilities | 組件
 
 ** Straight
 
@@ -273,8 +310,8 @@ Install package with straight.
 ** Which-Key
 
 #+begin_src emacs-lisp
-  (setup (:pkg which-key)
-    (which-key-mode +1))
+  (straight-use-package 'which-key)
+  (which-key-mode +1)
 #+end_src
 
 ** General.el
@@ -283,10 +320,10 @@ Manage keybinding with general.el, and rebind some default keys. Additionally,
 define ~M-m~ as my leader-key.
 
 #+begin_src emacs-lisp
-  (setup (:pkg general)
-    (define-prefix-command 'zy/leader-map)
-    (general-define-key "M-m" 'zy/leader-map
-			"M-z" 'back-to-indentation))
+  (straight-use-package 'general)
+  (define-prefix-command 'zy/leader-map)
+  (general-define-key "M-m" 'zy/leader-map
+                      "M-z" 'back-to-indentation)
 #+end_src
 
 ** ZyEmacs Keymaps
@@ -304,23 +341,28 @@ Define several leader keymaps.
 ** Vertico and Minibuffer
 
 #+begin_src emacs-lisp
-  (setup (:pkg vertico)
-    (vertico-mode +1))
+  ;; Setup Vertico.
+  (straight-use-package 'vertico)
+  (vertico-mode +1)
 
-  (setup (:pkg orderless)
-    (setq completion-styles '(orderless partial-completion)
-	  completion-category-defaults nil
-	  completion-category-overrides '((file (styles partial-completion)))))
+  ;; Setup Orderless.
+  (straight-use-package 'orderless)
+  (setq completion-styles '(orderless partial-completion)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion))))
 
-  (setup (:pkg savehist)
-    (savehist-mode +1))
+  ;; Setup Savehist.
+  (straight-use-package 'savehist)
+  (savehist-mode +1)
 
-  (setup (:pkg marginalia)
-    (marginalia-mode +1))
+  ;; Setup Marginalia.
+  (straight-use-package 'marginalia)
+  (marginalia-mode +1)
 
+  ;; Other minibuffer settings.
   (setq minibuffer-prompt-properties
-	'(read-only t cursor-intangible t face minibuffer-prompt)
-	enable-recursive-minibuffers t)
+        '(read-only t cursor-intangible t face minibuffer-prompt)
+        enable-recursive-minibuffers t)
   (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 #+end_src
 
@@ -329,72 +371,79 @@ Define several leader keymaps.
 Register utilities have not been configured.
 
 #+begin_src emacs-lisp
-  (setup (:pkg consult)
-    (setq completion-in-region-function
-          #'consult-completion-in-region)
-    (advice-add #'completing-read-multiple
-                :override #'consult-completing-read-multiple)
-    (general-define-key
-     "M-y" 'consult-yank-pop
-     "<help> a" 'consult-apropos)
-    (general-define-key
-     :keymaps 'mode-specific-map
-     "h" 'consult-history
-     "m" 'consult-mode-command
-     "k" 'consult-kmacro)
-    (general-define-key
-     :keymaps 'ctl-x-map
-     "M-:" 'consult-complex-command
-     "b" 'consult-buffer
-     "4 b" 'consult-buffer-other-window
-     "5 b" 'consult-buffer-other-frame
-     "r b" 'consult-bookmark
-     "p b" 'consult-project-buffer)
-    (general-define-key
-     :keymaps 'goto-map
-     "e" 'consult-compile-error
-     "f" 'consult-flymake
-     "g" 'consult-goto-line
-     "M-g" 'consult-goto-line
-     "o" 'consult-outline
-     "m" 'consult-mark
-     "k" 'consult-global-mark
-     "i" 'consult-imenu
-     "I" 'consult-imenu-multi)
-    (general-define-key
-     :keymaps 'search-map
-     "d" 'consult-find
-     "D" 'consult-locate
-     "g" 'consult-grep
-     "G" 'consult-git-grep
-     "r" 'consult-ripgrep
-     "l" 'consult-line
-     "L" 'consult-line-multi
-     "m" 'consult-multi-occur
-     "k" 'consult-keep-lines
-     "u" 'consult-focus-lines)
-    (general-define-key
-     :keymaps 'isearch-mode-map
-     "M-e" 'consult-isearch-history
-     "M-s e" 'consult-isearch-history
-     "M-s l" 'consult-line
-     "M-s L" 'consult-line-multi)
-    (general-define-key
-     :keymaps 'minibuffer-local-map
-     "M-s" 'consult-history
-     "M-r" 'consult-history))
+  (straight-use-package 'consult)
+  (setq completion-in-region-function
+        #'consult-completion-in-region)
+  (advice-add #'completing-read-multiple
+              :override #'consult-completing-read-multiple)
+
+  (general-define-key
+   "M-y" 'consult-yank-pop
+   "<help> a" 'consult-apropos)
+
+  (general-define-key
+   :keymaps 'mode-specific-map
+   "h" 'consult-history
+   "m" 'consult-mode-command
+   "k" 'consult-kmacro)
+
+  (general-define-key
+   :keymaps 'ctl-x-map
+   "M-:" 'consult-complex-command
+   "b" 'consult-buffer
+   "4 b" 'consult-buffer-other-window
+   "5 b" 'consult-buffer-other-frame
+   "r b" 'consult-bookmark
+   "p b" 'consult-project-buffer)
+
+  (general-define-key
+   :keymaps 'goto-map
+   "e" 'consult-compile-error
+   "f" 'consult-flymake
+   "g" 'consult-goto-line
+   "M-g" 'consult-goto-line
+   "o" 'consult-outline
+   "m" 'consult-mark
+   "k" 'consult-global-mark
+   "i" 'consult-imenu
+   "I" 'consult-imenu-multi)
+
+  (general-define-key
+   :keymaps 'search-map
+   "d" 'consult-find
+   "D" 'consult-locate
+   "g" 'consult-grep
+   "G" 'consult-git-grep
+   "r" 'consult-ripgrep
+   "l" 'consult-line
+   "L" 'consult-line-multi
+   "m" 'consult-multi-occur
+   "k" 'consult-keep-lines
+   "u" 'consult-focus-lines)
+
+  (general-define-key
+   :keymaps 'isearch-mode-map
+   "M-e" 'consult-isearch-history
+   "M-s e" 'consult-isearch-history
+   "M-s l" 'consult-line
+   "M-s L" 'consult-line-multi)
+
+  (general-define-key
+   :keymaps 'minibuffer-local-map
+   "M-s" 'consult-history
+   "M-r" 'consult-history)
 #+end_src
 
 ** Emacs Server
 
 #+begin_src emacs-lisp
-  (zy!run-after-idle 1
+  (run-with-idle-timer! 1
     (require 'server)
     (unless (server-running-p)
       (server-start)))
 #+end_src
 
-* General Configuration
+* General | 一般性設置
 
 ** Native Setqs
 
@@ -403,7 +452,7 @@ Register utilities have not been configured.
    auto-save-default nil
    disabled-command-function nil
    fill-column 80
-   frame-title-format (if *win64*
+   frame-title-format (if zy*os-windows
                           '("" "windows-emacs" " [%b]")
                         '("" "emacs" " [%b]"))
    inhibit-compacting-font-caches t
@@ -415,7 +464,7 @@ Register utilities have not been configured.
 ** Native Modes
 
 #+begin_src emacs-lisp
-  (zy!add-hook 'after-init-hook
+  (add-hook-lambda! 'after-init-hook
     (delete-selection-mode +1)
     (global-display-line-numbers-mode +1)
     (global-subword-mode +1)
@@ -423,7 +472,7 @@ Register utilities have not been configured.
     (save-place-mode +1)
     (load "kinsoku" 'noerror 'nomessage))
 
-  (zy!add-hooks ('prog-mode-hook 'text-mode-hook)
+  (add-hooks-lambda! '(prog-mode-hook text-mode-hook)
     (setq-local show-trailing-whitespace t)
     (hl-line-mode +1))
 #+end_src
@@ -431,27 +480,28 @@ Register utilities have not been configured.
 ** Super Save
 
 #+begin_src emacs-lisp
-  (setup (:pkg super-save)
-    (setq super-save-auto-save-when-idle t)
-    (super-save-mode +1))
+  (straight-use-package 'super-save)
+  (setq super-save-auto-save-when-idle t)
+  (super-save-mode +1)
 #+end_src
 
 ** Magit
 
 #+begin_src emacs-lisp
-  (setup (:pkg magit)
-    (general-define-key
-     :keymaps 'ctl-x-map
-     "g" 'magit-status
-     "M-g" 'magit-dispatch))
+  (straight-use-package 'magit)
+  (general-define-key
+   :keymaps 'ctl-x-map
+   "g" 'magit-status
+   "M-g" 'magit-dispatch)
 #+end_src
 
 ** Valign
 
 #+begin_src emacs-lisp
-  (setup (:pkg valign)
-    (add-hook 'org-mode-hook #'valign-mode)
-    (add-hook 'markdown-mode-hook #'valign-mode))
+  (straight-use-package 'valign)
+  (add-hooks! '(org-mode-hook
+                markdown-mode-hook)
+              #'valign-mode)
 #+end_src
 
 ** Restart-Emacs
@@ -459,14 +509,14 @@ Register utilities have not been configured.
 Restart Emacs within Emacs, or open a new instance of Emacs.
 
 #+begin_src emacs-lisp
-  (setup (:pkg restart-emacs)
-    (general-define-key
-     :keymaps 'zy/leader-config-map
-     "R" 'restart-emacs
-     "N" 'restart-emacs-start-new-emacs))
+  (straight-use-package 'restart-emacs)
+  (general-define-key
+   :keymaps 'zy/leader-config-map
+   "R" 'restart-emacs
+   "N" 'restart-emacs-start-new-emacs)
 #+end_src
 
-* UI
+* UI | 用戶界面
 
 ** Toggle UI Elements
 
@@ -480,17 +530,29 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 ** Theme
 
 #+begin_src emacs-lisp
-  (defvar zy/default-theme 'spacemacs-light
-    "Theme to enable at startup")
-  (when zy/default-theme
-    (setup (:pkg spacemacs-theme)
+  (unless (fboundp 'zy-setup-theme)
+    (defun zy-setup-theme ()
+      "Setup theme.
+
+  This function can be overriden in custom file."
+      (straight-use-package 'spacemacs-theme)
       (require 'spacemacs-common)
-      (load-theme zy/default-theme t))
-    (setup (:pkg solaire-mode)
-      (solaire-global-mode +1)))
+      (load-theme 'spacemacs-light t)))
+
+  (zy-setup-theme)
+
+  (defvar zy$use-solaire-mode
+    (if (boundp 'zy$use-solaire-mode)
+        zy$use-solaire-mode
+      t)
+    "Whether Emacs should install and enable 'solaire-mode'.")
+
+  (when zy$use-solaire-mode
+    (straight-use-package 'solaire-mode)
+    (solaire-global-mode +1))
 #+end_src
 
-** Font
+** TODO Font
 
 Font configuration is a huge pain for Chinese Emacs users. Comments under this headline will be in Chinese, to meet the needs of its audience.
 
@@ -669,7 +731,7 @@ You can customise font by setting these variables in ~custom.el~:
 
 #+begin_src emacs-lisp
   (when (display-graphic-p)
-    (zy!add-hook 'after-init-hook
+    (add-hook-lambda! 'after-init-hook
 
       (defconst zy*fontlist-default-preset
         `(,(zy!pick-main-font ("Sarasa Mono Slab TC" 16)
@@ -785,7 +847,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 
   (add-to-list 'after-make-frame-functions
                #'zy/resize-frame)
-  (zy!add-hook 'emacs-startup-hook
+  (add-hook-lambda! 'emacs-startup-hook
     (zy/resize-frame nil 'no-rem))
 #+end_src
 
@@ -798,7 +860,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   (general-define-key
    :keymaps 'zy/leader-config-map
    "d" #'darkroom-mode)
-  (zy!add-hook 'darkroom-mode-hook
+  (add-hook-lambda! 'darkroom-mode-hook
     (let ((inhibit-message t))
       (delete-other-windows))
     (hl-line-mode 'toggle))
@@ -821,7 +883,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
                  (equal (progn
                           (when frame (select-frame frame))
                           (count-windows))
-                        1)
+                        1))
         (let* ((cur-size `(,(frame-parameter frame 'width)
                            ,(frame-parameter frame 'height)))
                (s2d (and (boundp 'darkroom-mode)
@@ -844,7 +906,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
                  #'zy/darkroom-switch-size))
 #+end_src
 
-* Lingual
+* Lingual | 語言相關
 ** Encoding
 
 Make everything UTF-8.
@@ -876,12 +938,12 @@ Make everything UTF-8.
   (add-hook 'post-command-hook 'zy/change-cursor-color-on-im)
 #+end_src
 
-* Major Modes
+* Major Modes | 各主模式設置
 
 ** Emacs Lisp
 
 #+begin_src emacs-lisp
-  (zy!add-hook 'emacs-lisp-mode-hook
+  (add-hook-lambda! 'emacs-lisp-mode-hook
     (setq-local fill-column 70))
 #+end_src
 
@@ -895,7 +957,7 @@ Make everything UTF-8.
           org-log-done 'time
           org-src-window-setup 'current-window
           org-tags-column 0)
-    (zy!add-hook 'org-mode-hook
+    (add-hook-lambda! 'org-mode-hook
       (display-line-numbers-mode -1)
       (org-indent-mode +1)
       (variable-pitch-mode +1)
@@ -934,7 +996,7 @@ Make everything UTF-8.
 *** GTD System
 
 #+begin_src emacs-lisp
-  (defvar zy/gtd-path (expand-file-name "org/org-gtd" zy/zybox-path)
+  (defvar zy/gtd-path (expand-file-name "org/org-gtd" zy$zybox-path)
     "The path of my GTD system root.")
   (defvar zy/gtd-inbox-path (expand-file-name "inbox.org" zy/gtd-path)
     "The path of `inbox.org' of my GTD system.")
@@ -1025,8 +1087,8 @@ Make everything UTF-8.
      "g" 'calendar
      "j" 'org-journal-new-entry)
     (setq org-journal-extend-today-until 3)
-    (when zy/zybox-path
-      (setq org-journal-dir (expand-file-name "org/org-journal" zy/zybox-path)
+    (when zy$zybox-path
+      (setq org-journal-dir (expand-file-name "org/org-journal" zy$zybox-path)
             org-journal-file-format "%F.org"
             org-journal-date-format "%F %a W%V\n"
             org-journal-date-prefix "#+title: "
@@ -1034,12 +1096,4 @@ Make everything UTF-8.
             org-journal-time-format-post-midnight "%R (midnight) "
             org-journal-time-prefix "\n* "
             org-journal-file-header "")))
-#+end_src
-
-* Finishing Jobs
-
-** Setting Flags
-
-#+begin_src emacs-lisp
-  (customize-save-variable '*first-install* nil)
 #+end_src
