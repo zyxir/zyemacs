@@ -1023,3 +1023,9 @@ Make everything UTF-8.
           org-journal-time-prefix "\n* "
           org-journal-file-header ""))
 #+end_src
+
+** Verilog
+
+#+begin_src emacs-lisp
+  (straight-use-package 'verilog-mode)
+#+end_src
