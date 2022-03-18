@@ -3,7 +3,7 @@
 
 * Preface | 前言
 
-** How To Install | 如何安裝
+** How to Install | 如何安裝
 
 Press =C-c C-v t= (~org-babel-tangle~) while reading this file inside Emacs, to generate the actual
 configuration file, ~init.el~. Relaunch Emacs to make the configuration take effect.
@@ -18,11 +18,15 @@ Alternatively, you can use this command in Shell to generate the configuration f
 
 This section is inspired by [[https://docs.doomemacs.org/latest/#/developers/conventions/emacs-lisp/naming-conventions][Doom Emacs naming conventions]].
 
-- ~zy/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
-- ~zy-[-]NAME~ :: A non-interactive function.
-- ~zy*NAME~ :: A constant.
-- ~zy$NAME~ :: A variable.
-- ~abc!~ :: A macro.
+Symbol names starts with ~NAMESPACE~, where ~NAMESPACE~ is usually ~zy~.
+
+- ~NAMESPACE/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
+- ~NAMESPACE-NAME~ :: A non-interactive function.
+- ~NAMESPACE$NAME~ :: A variable.
+- ~NAMESPACE--NAME~ :: A protected function or variable.
+- ~abc!~ or ~NAMESPACE-abc!~ :: A macro.
+
+The optional ~-~ added before symbol ~NAME~ signifies a protected function/variable that should only be used internally.
 
 * Startup | 啟動
 
@@ -135,14 +139,14 @@ Examples of these macros:
 ** Constants
 
 #+begin_src emacs-lisp
-  (defconst zy*os-windows (eq system-type 'windows-nt)
+  (defconst zy$*windows* (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
-  (defconst zy*os-linux (or (eq system-type 'gnu/linux)
+  (defconst zy$*linux* (or (eq system-type 'gnu/linux)
                             (eq system-type 'linux))
     "If Emacs is run on Linux.
 
   Note that WSL is also Linux.")
-  (defconst zy*os-wsl (equal
+  (defconst zy$*wsl* (equal
                        0
                        (shell-command
                         "grep -q microsoft /proc/version"))
@@ -195,8 +199,8 @@ Zybox is the collection of my personal files.
             (cl-some
              (lambda (path) (when (file-directory-p path) path))
              (cond
-              (zy*os-windows zybox-possible-locs-win64)
-              (zy*os-linux zybox-possible-locs-linux)))))
+              (zy$*windows* zybox-possible-locs-win64)
+              (zy$*linux* zybox-possible-locs-linux)))))
       (if guessed-zybox-path
           (progn
             (setq zy$zybox-path guessed-zybox-path)
@@ -229,85 +233,7 @@ Install package with straight.
   (setq straight-vc-git-default-clone-depth 1)
 #+end_src
 
-** Setup.el
-
-*** Install It
-
-#+begin_src emacs-lisp
-  (straight-use-package '(setup :type git :host github :repo "phikal/setup.el"))
-  (require 'setup)
-#+end_src
-
-*** :pkg and :pkg-when
-
-#+begin_src emacs-lisp
-  (setup-define :pkg
-    (lambda (recipe)
-      `(unless (straight-use-package ',recipe)
-	 ,(setup-quit)))
-    :documentation
-    "Install RECIPE with `straight-use-package'.
-  This macro can be used as HEAD, and will replace itself with the
-  first RECIPE's package."
-    :repeatable t
-    :shorthand (lambda (sexp)
-		 (let ((recipe (cadr sexp)))
-		   (if (consp recipe)
-		       (car recipe)
-		     recipe))))
-  (setup-define :pkg-when
-    (lambda (recipe condition)
-      `(if ,condition
-	   (straight-use-package ',recipe)
-	 ,(setup-quit)))
-    :documentation
-    "Install RECIPE with `straight-use-package' when CONDITION is met.
-  If CONDITION is false, stop evaluating the body.  This macro can
-  be used as HEAD, and will replace itself with the RECIPE's
-  package.  This macro is not repeatable."
-    :repeatable nil
-    :indent 1
-    :shorthand (lambda (sexp)
-		 (let ((recipe (cadr sexp)))
-		   (if (consp recipe)
-		       (car recipe)
-		     recipe))))
-#+end_src
-
-*** :delay
-
-#+begin_src emacs-lisp
-  (setup-define :delay
-    (lambda (&optional time)
-      `(run-with-idle-timer ,(or time 1) nil
-                            (lambda () (require ',(setup-get 'feature)))))
-    :documentation "Delay loading the feature until a certain amount of idle time has passed.")
-#+end_src
-
-*** :load-after
-
-#+begin_src emacs-lisp
-  (setup-define :load-after
-      (lambda (&rest features)
-	(let ((body `(require ',(setup-get 'feature))))
-	  (dolist (feature (nreverse features))
-	    (setq body `(with-eval-after-load ',feature ,body)))
-	  body))
-    :documentation "Load the current feature after FEATURES.")
-#+end_src
-
-*** :needs
-
-#+begin_src emacs-lisp
-  (setup-define :needs
-      (lambda (executable)
-	`(unless (executable-find ,executable)
-	   ,(setup-quit)))
-    :documentation "If EXECUTABLE is not in the path, stop here."
-    :repeatable 1)
-#+end_src
-
-** Which-Key
+* Which-Key
 
 #+begin_src emacs-lisp
   (straight-use-package 'which-key)
@@ -321,8 +247,8 @@ define ~M-m~ as my leader-key.
 
 #+begin_src emacs-lisp
   (straight-use-package 'general)
-  (define-prefix-command 'zy/leader-map)
-  (general-define-key "M-m" 'zy/leader-map
+  (define-prefix-command 'zy$leader-map)
+  (general-define-key "M-m" 'zy$leader-map
                       "M-z" 'back-to-indentation)
 #+end_src
 
@@ -331,11 +257,11 @@ define ~M-m~ as my leader-key.
 Define several leader keymaps.
 
 #+begin_src emacs-lisp
-  (define-prefix-command 'zy/leader-config-map)
+  (define-prefix-command 'zy$leader-config-map)
   (general-define-key
-   :keymaps 'zy/leader-map
-   "m" 'zy/leader-config-map
-   "M-m" 'zy/leader-config-map)
+   :keymaps 'zy$leader-map
+   "m" 'zy$leader-config-map
+   "M-m" 'zy$leader-config-map)
 #+end_src
 
 ** Vertico and Minibuffer
@@ -452,7 +378,7 @@ Register utilities have not been configured.
    auto-save-default nil
    disabled-command-function nil
    fill-column 80
-   frame-title-format (if zy*os-windows
+   frame-title-format (if zy$*windows*
                           '("" "windows-emacs" " [%b]")
                         '("" "emacs" " [%b]"))
    inhibit-compacting-font-caches t
@@ -511,7 +437,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 #+begin_src emacs-lisp
   (straight-use-package 'restart-emacs)
   (general-define-key
-   :keymaps 'zy/leader-config-map
+   :keymaps 'zy$leader-config-map
    "R" 'restart-emacs
    "N" 'restart-emacs-start-new-emacs)
 #+end_src
@@ -535,49 +461,52 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
       "Setup theme.
 
   This function can be overriden in custom file."
-      (straight-use-package 'spacemacs-theme)
-      (require 'spacemacs-common)
-      (load-theme 'spacemacs-light t)))
+      (if (display-graphic-p)
+          (progn
+            (straight-use-package 'spacemacs-theme)
+            (require 'spacemacs-common)
+            (load-theme 'spacemacs-light t))
+        (load-theme 'wombat t))))
 
   (zy-setup-theme)
 
-  (defvar zy$use-solaire-mode
-    (if (boundp 'zy$use-solaire-mode)
-        zy$use-solaire-mode
+  (defvar zy$use-solaire-p
+    (if (boundp 'zy$use-solaire-p)
+        zy$use-solaire-p
       t)
     "Whether Emacs should install and enable 'solaire-mode'.")
 
-  (when zy$use-solaire-mode
+  (when zy$use-solaire-p
     (straight-use-package 'solaire-mode)
     (solaire-global-mode +1))
 #+end_src
 
-** TODO Font
+** Font
 
-Font configuration is a huge pain for Chinese Emacs users. Comments under this headline will be in Chinese, to meet the needs of its audience.
+Font configuration is always a pain for Emacsers who use Chinese. To help more people in need, comments in this section would be bilingual. | 字體配置一直是中文 Emacs 用戶的痛。爲了幫到更多有需要的人，这一部分配置的所有評論將以雙語寫成。
 
-*** ZyEmacs 的字體機制
+*** The System | 字體系統概述
 
-爲了能够給不同的 face 設置不同的西文字體和中文字體，甚至更多語種的字體（比如泰語字體），我經過一定的研究，制定了 ZyEmacs 的字體配置方案。目前（2022/03/16），我還沒有在網上看到能達到相同效果的配置。
-
-在 ZyEmacs 中，​*字體列表（fontlist）*​是滿足如下格式的列表，它定義了「主字體」作爲默認顯示字體，並且爲各個字符集指定了適用於它們的字體。
+In ZyEmacs, a fontlist is a table like below, that defines ~main-font~ as the default font for displaying text, and assigns fonts for each charset. | 在 ZyEmacs 中，​*字體列表（fontlist）*​是滿足如下格式的列表，它定義了 ~main-font~ 作爲默認顯示字體，並且爲各個字符集指定了適用於它們的字體。
 
 #+begin_src emacs-lisp :tangle no
-  '((主字體 主字體字號 主字體字重)
-    (字符集1 用於該字符集的字體 該字體字重 APPEND)
-    (字符集2 用於該字符集的字體 該字體字重 APPEND)
-    ((字符集3 字符集4 字符集5) 用於這些字符集的字體 該字體字重 APPEND))
+  '((main-font [size [weight]])
+    (charset1 font [weight [append]])
+    (charset2 font [weight [append]])
+    ((charset3 charset4 charset5) font [weight [append]]))
 #+end_src
 
-其中，若有任何字體的值爲 nil，或是在系統中沒有安裝，則會跳過它；字號和字重都可以省去或爲 nil，代表使用默認値；當 APPEND 爲 t 時，會附加在之原有的設置之後（與 ~set-fontset-font~ 的參數一致）。
+The core of the font system is the function ~zy-fontlist-apply~. It converts a fontlist to a font (the ~main-font~) and a fontset (from the fonts assigned to each charset), and apply them to a given face. | 這一字體系統的核心是 ~zy-fontlist-apply~ 函數。它將一個 fontlist 轉換爲一個字體（即 ~main-font~​）和一個字體集（來自被指派給各個字符集的字體；字體集 fontset 是Emacs 原本就有的概念），並將它們分配給一個給定的 face。
 
-下面定義了函數 ~zy/apply-fontlist~​，用來將某一個字體列表應用到某一個 face：
+The font system provides a more convenient interface for multilingual font setup, compared to the default fontset interface. | 相較于默認的字體系統，這一字體系統提供了一個更便利的字體設置接口，能夠更方便地爲多個語言配置字體。
+
+*** Core Functions | 核心函數
 
 #+begin_src emacs-lisp
-  (defvar zy/zyfs-counter 0
+  (defvar zy-font$-fs-counter 0
     "How many fontset have been created by ZyEmacs.")
 
-  (defun zy/apply-fontlist (fontlist &optional face frame)
+  (defun zy-fontlist-apply (fontlist &optional face frame)
     "Apply FONTLIST to FACE on FRAME.
 
   If FACE is nil or omitted, apply to the default face.
@@ -592,7 +521,7 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
            fontset
            (fontset-is-new nil)
            (cflist (cdr fontlist)))
-      ;; 設置主字體。
+      ;; Set main font.
       (when (car main)
         (setq main-spec-expr
               (append main-spec-expr `(:family ,(car main)))))
@@ -607,17 +536,18 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
         (set-face-attribute face frame :font main-spec))
       (unless (cadr main)
         (set-face-attribute face frame :height 'unspecified))
-      ;; 獲取 FACE 的 :fontset 屬性。如果是 'unspecified'，則新建一個 fontset。
+      ;; Get the :fontset attribution of FACE. If it is 'unspecified',
+      ;; create a new fontset.
       (setq fontset (face-attribute face :fontset frame))
       (when (equal fontset 'unspecified)
         (setq fontset
               (new-fontset
                (format "-*-*-*-*-*--*-*-*-*-*-*-fontset-zyfs%d"
-                       zy/zyfs-counter)
+                       zy-font$-fs-counter)
                nil)
-              zy/zyfs-counter (+ zy/zyfs-counter 1)
+              zy-font$-fs-counter (+ zy-font$-fs-counter 1)
               fontset-is-new t))
-      ;; 遍歷 CFLIST，爲 FONTSET 的各個字符集設置字體。
+      ;; Loop 'cflist' to set font for each charset.
       (dolist (cfpair cflist)
         (let* ((charset-or-charsets (car cfpair))
                (append (cadddr cfpair));
@@ -637,9 +567,7 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
                                     append))
               (set-fontset-font fontset charset-or-charsets spec
                                 frame append)))))
-      ;; 額外地，把 latin 字符集的字體設置爲主字體。
-      (set-fontset-font fontset 'latin main-spec frame)
-      ;; 如果 FONTSET 是新創建的，則爲 FACE 指定 :fontset 屬性。
+      ;; If 'fontset' is newly created, assign it to FACE.
       (when fontset-is-new
         (set-face-attribute face frame :fontset fontset))))
 #+end_src
@@ -647,7 +575,7 @@ Font configuration is a huge pain for Chinese Emacs users. Comments under this h
 Get a copy of the fontlist without the size information.
 
 #+begin_src emacs-lisp
-  (defun zy/copy-fontlist-without-size (fontlist)
+  (defun zy-copy-fontlist-without-size (fontlist)
     "Return a copy of FONTLIST, where size info is omitted."
     (let* ((new-fontlist (copy-tree fontlist))
            (main (car new-fontlist)))
@@ -656,26 +584,20 @@ Get a copy of the fontlist without the size information.
       new-fontlist))
 #+end_src
 
-*** Font Macros
-
-Apply a fontlist to multiple faces at once.
+*** Macros | 宏
 
 #+begin_src emacs-lisp
-  (defmacro zy!apply-fontlist (fontlist &rest faces)
+  (defmacro zy-fontlist-apply! (fontlist &rest faces)
     "Apply FONTLIST to each face in FACES."
     (let ((body '(progn)))
       (dolist (face faces)
         (add-to-list
          'body
-         `(zy/apply-fontlist ,fontlist ,face nil)
+         `(zy-fontlist-apply ,fontlist ,face nil)
          'append))
       body))
-#+end_src
 
-Pick the first font available.
-
-#+begin_src emacs-lisp
-  (defmacro zy!pick-font (&rest fonts)
+  (defmacro zy-pick-font! (&rest fonts)
     "Get the first available font in FONTS."
     `(let ((--fonts-tail-- ',fonts)
            font
@@ -689,7 +611,7 @@ Pick the first font available.
                  (cdr --fonts-tail--))))
        result))
 
-  (defmacro zy!pick-main-font (&rest mains)
+  (defmacro zy-pick-main-font! (&rest mains)
     "Get the first available main font in MAINS.
 
   Each element of MAINS is like (font size weight)."
@@ -721,82 +643,84 @@ Pick the first font available.
        result))
 #+end_src
 
-*** Create Fontlists
+*** Create and Apply Fontlists | 創建和應用字體列表
 
 You can customise font by setting these variables in ~custom.el~:
 
-- ~zy/fontlist-default~
-- ~zy/fontlist-varpitch~
-- ~zy/fontlist-title~
+- ~zy$fontlist-default~
+- ~zy$fontlist-varpitch~
+- ~zy$fontlist-title~
 
 #+begin_src emacs-lisp
   (when (display-graphic-p)
     (add-hook-lambda! 'after-init-hook
 
-      (defconst zy*fontlist-default-preset
-        `(,(zy!pick-main-font ("Sarasa Mono Slab TC" 16)
-                              ("Iosevka Term Slab" 16)
-                              ("Consolas" 16)
-                              ("monospace" 16))
+      (defconst zy$fontlist-default-preset
+        `(,(zy-pick-main-font! ("Sarasa Mono Slab TC" 16)
+                               ("Iosevka Term Slab" 16)
+                               ("Consolas" 16)
+                               ("monospace" 16))
           ((han cjk-misc bopomofo kana)
-           ,(zy!pick-font "GenYoGothic TW"
-                          "Sarasa Mono Slab TC"
-                          "Noto Sans CJK TC"
-                          "Source Han Sans TC"
-                          "Microsoft YaHei"))
+           ,(zy-pick-font! "GenYoGothic TW"
+                           "Sarasa Mono Slab TC"
+                           "Noto Sans CJK TC"
+                           "Source Han Sans TC"
+                           "Microsoft YaHei"))
           (symbol
-           ,(zy!pick-font "Noto Sans Symbols"
-                          "Wingdings")))
-        "Preset value of `zy/fontlist-default'")
+           ,(zy-pick-font! "Noto Sans Symbols"
+                           "Wingdings")))
+        "Preset value of `zy$fontlist-default'")
 
-      (defvar zy/fontlist-default
-        (if (boundp 'zy/fontlist-default)
-            zy/fontlist-default
-          zy*fontlist-default-preset)
+      (defvar zy$fontlist-default
+        (if (boundp 'zy$fontlist-default)
+            zy$fontlist-default
+          zy$fontlist-default-preset)
         "Fontlist used on most occasions.")
 
-      (defvar zy/fontlist-default-without-size
-        (zy/copy-fontlist-without-size zy/fontlist-default)
+      (defvar zy$fontlist-default-without-size
+        (zy-copy-fontlist-without-size zy$fontlist-default)
         "Fontlist used on most occasions, without size information.")
 
-      (defconst zy*fontlist-varpitch-preset
-        `(,(zy!pick-main-font ("IBM Plex Serif" 18)
-                              ("Times New Roman" 18)
-                              ("serif" 18))
+      (defconst zy$fontlist-varpitch-preset
+        `(,(zy-pick-main-font! ("IBM Plex Serif" 18)
+                               ("Times New Roman" 18)
+                               ("serif" 18))
           ((han cjk-misc bopomofo kana)
-           ,(zy!pick-font "GenYoMin TW"
-                          "Source Han Serif TC"
-                          "STSong")))
-        "Preset value of `zy/fontlist-varpitch'")
+           ,(zy-pick-font! "GenYoMin TW"
+                           "Source Han Serif TC"
+                           "STSong")))
+        "Preset value of `zy$fontlist-varpitch'")
 
-      (defvar zy/fontlist-varpitch
-        (if (boundp 'zy/fontlist-varpitch)
-            zy/fontlist-varpitch
-          zy*fontlist-varpitch-preset)
+      (defvar zy$fontlist-varpitch
+        (if (boundp 'zy$fontlist-varpitch)
+            zy$fontlist-varpitch
+          zy$fontlist-varpitch-preset)
         "Fontlist used for 'variable-pitch' face.")
 
-      (defconst zy*fontlist-title-preset
-        `(,(zy!pick-main-font ("Roboto Slab")
-                              ("Noto Sans")
-                              ("Calibri")
-                              ("sans"))
+      (defconst zy$fontlist-title-preset
+        `(,(zy-pick-main-font! ("Roboto Slab")
+                               ("Noto Sans")
+                               ("Calibri")
+                               ("sans"))
           ((han cjk-misc bopomofo kana)
-           ,(zy!pick-font "GenYoGothic TW"
-                          "Sarasa Mono Slab TC"
-                          "Source Han Sans TC"
-                          "Noto Sans CJK TC"
-                          "Microsoft YaHei")))
-        "Preset value of `zy/fontlist-title'")
+           ,(zy-pick-font! "GenYoGothic TW"
+                           "Sarasa Mono Slab TC"
+                           "Source Han Sans TC"
+                           "Noto Sans CJK TC"
+                           "Microsoft YaHei")))
+        "Preset value of `zy$fontlist-title'")
 
-      (defvar zy/fontlist-title
-        (if (boundp 'zy/fontlist-title)
-            zy/fontlist-title
-          zy*fontlist-title-preset)
+      (defvar zy$fontlist-title
+        (if (boundp 'zy$fontlist-title)
+            zy$fontlist-title
+          zy$fontlist-title-preset)
         "Fontlist used for titles.")
 
-      (zy/apply-fontlist zy/fontlist-default 'default)
-      (zy/apply-fontlist zy/fontlist-varpitch 'variable-pitch)))
+      (zy-fontlist-apply zy$fontlist-default 'default)
+      (zy-fontlist-apply zy$fontlist-varpitch 'variable-pitch)))
 #+end_src
+
+*** 中西文字體等寬判斷
 
 根據以下內容判斷等寬性：
 
@@ -810,9 +734,9 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 *** Frame Size Definition
 
 #+begin_src emacs-lisp
-  (defvar zy/frame-size-standard '(100 40)
+  (defvar zy$frame-size-standard '(100 40)
     "Standard frame size for new frames.")
-  (defvar zy/frame-size-darkroom '(120 40)
+  (defvar zy$frame-size-darkroom '(120 40)
     "Standard frame size for Darkroom mode.")
 #+end_src
 
@@ -828,8 +752,8 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
     (when (display-graphic-p)
       (let* ((standard-size (if (and (boundp 'darkroom-mode)
                                      darkroom-mode)
-                                zy/frame-size-darkroom
-                              zy/frame-size-standard))
+                                zy$frame-size-darkroom
+                              zy$frame-size-standard))
              (is-standard (and
                            (= (frame-width) (car standard-size))
                            (= (frame-height) (cadr standard-size))))
@@ -858,7 +782,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   (setq darkroom-margins 0.1
         darkroom-text-scale-increase 1)
   (general-define-key
-   :keymaps 'zy/leader-config-map
+   :keymaps 'zy$leader-config-map
    "d" #'darkroom-mode)
   (add-hook-lambda! 'darkroom-mode-hook
     (let ((inhibit-message t))
@@ -866,17 +790,17 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
     (hl-line-mode 'toggle))
 
   (with-eval-after-load 'darkroom
-    (defun zy/darkroom-switch-size (&optional frame)
+    (defun zy-darkroom-switch-size (&optional frame)
       "Switch FRAME size for `darkroom-mode'.
 
   All actions below assumes that there is only one window in
   FRAME, and GUI is active. Otherwise, do nothing.
 
   If 'darkroom-mode' is enabled, and current frame size is
-  `zy/frame-size-standard', resize to `zy/frame-size-darkroom'.
+  `zy$frame-size-standard', resize to `zy$frame-size-darkroom'.
 
   If 'darkroom-mode' is disabled, and current frame size is
-  `zy/frame-size-darkroom', resize to `zy/frame-size-standard'.
+  `zy$frame-size-darkroom', resize to `zy$frame-size-standard'.
 
   Otherwise, do nothing."
       (when (and (display-graphic-p)
@@ -888,22 +812,22 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
                            ,(frame-parameter frame 'height)))
                (s2d (and (boundp 'darkroom-mode)
                          darkroom-mode
-                         (equal cur-size zy/frame-size-standard)))
+                         (equal cur-size zy$frame-size-standard)))
                (d2s (and (not (and (boundp 'darkroom-mode)
                                    darkroom-mode))
-                         (equal cur-size zy/frame-size-darkroom))))
+                         (equal cur-size zy$frame-size-darkroom))))
           (cond
            (s2d (set-frame-size frame
-                                (car zy/frame-size-darkroom)
-                                (cadr zy/frame-size-darkroom)))
+                                (car zy$frame-size-darkroom)
+                                (cadr zy$frame-size-darkroom)))
            (d2s (set-frame-size frame
-                                (car zy/frame-size-standard)
-                                (cadr zy/frame-size-standard)))
+                                (car zy$frame-size-standard)
+                                (cadr zy$frame-size-standard)))
            (t nil)))))
 
-    (add-hook 'darkroom-mode-hook #'zy/darkroom-switch-size)
+    (add-hook 'darkroom-mode-hook #'zy-darkroom-switch-size)
     (add-to-list 'window-buffer-change-functions
-                 #'zy/darkroom-switch-size))
+                 #'zy-darkroom-switch-size))
 #+end_src
 
 * Lingual | 語言相關
@@ -919,22 +843,22 @@ Make everything UTF-8.
 ** Rime Input Method
 
 #+begin_src emacs-lisp
-  (setup (:pkg rime)
-    (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
-          default-input-method "rime"
-          rime-show-candidate 'posframe))
+  (straight-use-package 'rime)
+  (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
+        default-input-method "rime"
+        rime-show-candidate 'posframe)
 
   ;; Make the cursor orange when IM is active
-  (defvar zy/im-cursor-color "#f68a06"
+  (defvar zy$im-cursor-color "#f68a06"
       "Default cursor color if an input method is active.")
-  (defvar zy/default-cursor-color (frame-parameter nil 'cursor-color)
+  (defvar zy$default-cursor-color (frame-parameter nil 'cursor-color)
     "Default text cursor color.")
   (defun zy/change-cursor-color-on-im ()
     "Set cursor color depending IM state."
     (interactive)
     (set-cursor-color (if current-input-method
-                          zy/im-cursor-color
-                        zy/default-cursor-color)))
+                          zy$im-cursor-color
+                        zy$default-cursor-color)))
   (add-hook 'post-command-hook 'zy/change-cursor-color-on-im)
 #+end_src
 
@@ -952,77 +876,79 @@ Make everything UTF-8.
 *** Basic Org
 
 #+begin_src emacs-lisp
-  (setup (:pkg (org :type git :host github :repo "bzg/org-mode"))
-    (setq org-attach-id-dir "_org-att"
-          org-log-done 'time
-          org-src-window-setup 'current-window
-          org-tags-column 0)
-    (add-hook-lambda! 'org-mode-hook
-      (display-line-numbers-mode -1)
-      (org-indent-mode +1)
-      (variable-pitch-mode +1)
-      (visual-line-mode +1))
-    (with-eval-after-load 'org
-      ;; Headline faces.
-      (when (display-graphic-p)
-        (zy!apply-fontlist zy/fontlist-title
-                           'org-level-1
-                           'org-level-2
-                           'org-level-3
-                           'org-level-4
-                           'org-level-5
-                           'org-level-6
-                           'org-level-7
-                           'org-level-8)
-        (dolist (level (number-sequence 1 8))
-          (set-face-attribute
-           (intern (format "org-level-%d" level))
-           nil
-           :height
-           (string-to-number (format "1.%d" (- 4 level)))
-           :weight
-           (if (< level 3)
-               'bold
-             'semi-bold)))
-        ;; Markup faces.
-        (zy!apply-fontlist zy/fontlist-default-without-size
-                           'org-code
-                           'org-verbatim)
-        ;; Block faces.
-        (zy!apply-fontlist zy/fontlist-default-without-size
-                           'org-block))))
+  (straight-use-package '(org :type git :host github
+                              :repo "bzg/org-mode"))
+  (setq org-attach-id-dir "_org-att"
+        org-log-done 'time
+        org-src-window-setup 'current-window
+        org-tags-column 0)
+  (add-hook-lambda! 'org-mode-hook
+    (display-line-numbers-mode -1)
+    (org-indent-mode +1)
+    (variable-pitch-mode +1)
+    (visual-line-mode +1))
+
+  (with-eval-after-load 'org
+    ;; Headline faces.
+    (when (display-graphic-p)
+      (zy-fontlist-apply! zy$fontlist-title
+                          'org-level-1
+                          'org-level-2
+                          'org-level-3
+                          'org-level-4
+                          'org-level-5
+                          'org-level-6
+                          'org-level-7
+                          'org-level-8)
+      (dolist (level (number-sequence 1 8))
+        (set-face-attribute
+         (intern (format "org-level-%d" level))
+         nil
+         :height
+         (string-to-number (format "1.%d" (- 4 level)))
+         :weight
+         (if (< level 3)
+             'bold
+           'semi-bold)))
+      ;; Markup faces.
+      (zy-fontlist-apply! zy$fontlist-default-without-size
+                          'org-code
+                          'org-verbatim)
+      ;; Block faces.
+      (zy-fontlist-apply! zy$fontlist-default-without-size
+                          'org-block)))
 #+END_src
 
 *** GTD System
 
 #+begin_src emacs-lisp
-  (defvar zy/gtd-path (expand-file-name "org/org-gtd" zy$zybox-path)
+  (defvar zy$gtd-path (expand-file-name "org/org-gtd" zy$zybox-path)
     "The path of my GTD system root.")
-  (defvar zy/gtd-inbox-path (expand-file-name "inbox.org" zy/gtd-path)
+  (defvar zy$gtd-inbox-path (expand-file-name "inbox.org" zy$gtd-path)
     "The path of `inbox.org' of my GTD system.")
-  (defvar zy/gtd-gtd-path (expand-file-name "gtd.org" zy/gtd-path)
+  (defvar zy$gtd-gtd-path (expand-file-name "gtd.org" zy$gtd-path)
     "The path of `gtd.org' of my GTD system.")
-  (defvar zy/gtd-someday-path (expand-file-name "someday.org" zy/gtd-path)
+  (defvar zy$gtd-someday-path (expand-file-name "someday.org" zy$gtd-path)
     "The path of `someday.org' of my GTD system.")
 
   (setq
-   org-agenda-files `(,zy/gtd-inbox-path
-                      ,zy/gtd-gtd-path
-                      ,zy/gtd-someday-path)
+   org-agenda-files `(,zy$gtd-inbox-path
+                      ,zy$gtd-gtd-path
+                      ,zy$gtd-someday-path)
    org-capture-templates `(("i" "inbox" entry
-                            (file+headline ,zy/gtd-inbox-path "inbox")
+                            (file+headline ,zy$gtd-inbox-path "inbox")
                             "* TODO [#B] %U %i%?"
                             :empty-lines 1)
                            ("s" "someday" entry
-                            (file+headline ,zy/gtd-someday-path "someday")
+                            (file+headline ,zy$gtd-someday-path "someday")
                             "* TODO [#C] %U %i%?"
                             :empty-lines 1)
                            ("t" "GTD" entry
-                            (file+olp+datetree ,zy/gtd-gtd-path)
+                            (file+olp+datetree ,zy$gtd-gtd-path)
                             "* TODO [#B] %U %i%?"
                             :empty-lines 1))
-   org-refile-targets `((,zy/gtd-gtd-path :maxlevel . 3)
-                        (,zy/gtd-someday-path :level . 1))
+   org-refile-targets `((,zy$gtd-gtd-path :maxlevel . 3)
+                        (,zy$gtd-someday-path :level . 1))
    org-todo-keywords '((sequence "TODO(t)"
                                  "IN PROCESS(i)"
                                  "POSTPONED(p)"
@@ -1042,7 +968,7 @@ Make everything UTF-8.
                             ("NOT BUSY" . (:foreground "#DE90FF" :weight bold))))
 
   (general-define-key
-   :keymaps 'zy/leader-map
+   :keymaps 'zy$leader-map
    "a" 'org-agenda
    "c" 'org-capture)
 #+end_src
@@ -1050,50 +976,50 @@ Make everything UTF-8.
 *** Org-Appear
 
 #+begin_src emacs-lisp
-  (setup (:pkg org-appear)
-    (add-hook 'org-mode-hook 'org-appear-mode)
-    (setq-default org-hide-emphasis-markers t))
+  (straight-use-package 'org-appear)
+  (add-hook 'org-mode-hook 'org-appear-mode)
+  (setq-default org-hide-emphasis-markers t)
 #+end_src
 
 *** Org-Superstar
 
 #+begin_src emacs-lisp
-  (setup (:pkg org-superstar)
-    (add-hook 'org-mode-hook 'org-superstar-mode)
-    (setq org-superstar-headline-bullets-list '(#x25c9
-                                                #x25cb
-                                                #x25c8
-                                                #x25c7
-                                                #x2666)
-          org-superstar-cycle-headline-bullets nil
-          org-hide-leading-stars nil
-          org-superstar-leading-bullet #x200b
-          org-indent-mode-turns-on-hiding-stars nil
-          org-superstar-item-bullet-alist '((42 . #x2605)
-                                            (43 . #x2666)
-                                            (45 . #x27a4)))
-    (with-eval-after-load 'org-superstar
-      (zy!apply-fontlist zy/fontlist-default-without-size
-                         'org-superstar-header-bullet
-                         'org-superstar-item)))
+  (straight-use-package 'org-superstar)
+  (add-hook 'org-mode-hook 'org-superstar-mode)
+  (setq org-superstar-headline-bullets-list '(#x25c9
+                                              #x25cb
+                                              #x25c8
+                                              #x25c7
+                                              #x2666)
+        org-superstar-cycle-headline-bullets nil
+        org-hide-leading-stars nil
+        org-superstar-leading-bullet #x200b
+        org-indent-mode-turns-on-hiding-stars nil
+        org-superstar-item-bullet-alist '((42 . #x2605)
+                                          (43 . #x2666)
+                                          (45 . #x27a4)))
+  (with-eval-after-load 'org-superstar
+    (zy-fontlist-apply! zy$fontlist-default-without-size
+                        'org-superstar-header-bullet
+                        'org-superstar-item))
 #+end_src
 
 *** Org-Journal
 
 #+begin_src emacs-lisp
-  (setup (:pkg org-journal)
-    (general-define-key
-     :keymaps 'zy/leader-map
-     "g" 'calendar
-     "j" 'org-journal-new-entry)
-    (setq org-journal-extend-today-until 3)
-    (when zy$zybox-path
-      (setq org-journal-dir (expand-file-name "org/org-journal" zy$zybox-path)
-            org-journal-file-format "%F.org"
-            org-journal-date-format "%F %a W%V\n"
-            org-journal-date-prefix "#+title: "
-            org-journal-time-format "%R "
-            org-journal-time-format-post-midnight "%R (midnight) "
-            org-journal-time-prefix "\n* "
-            org-journal-file-header "")))
+  (straight-use-package 'org-journal)
+  (general-define-key
+   :keymaps 'zy$leader-map
+   "g" 'calendar
+   "j" 'org-journal-new-entry)
+  (setq org-journal-extend-today-until 3)
+  (when zy$zybox-path
+    (setq org-journal-dir (expand-file-name "org/org-journal" zy$zybox-path)
+          org-journal-file-format "%F.org"
+          org-journal-date-format "%F %a W%V\n"
+          org-journal-date-prefix "#+title: "
+          org-journal-time-format "%R "
+          org-journal-time-format-post-midnight "%R (midnight) "
+          org-journal-time-prefix "\n* "
+          org-journal-file-header ""))
 #+end_src
