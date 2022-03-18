@@ -503,7 +503,7 @@ The font system provides a more convenient interface for multilingual font setup
 *** Core Functions | 核心函數
 
 #+begin_src emacs-lisp
-  (defvar zy-font$-fs-counter 0
+  (defvar zy--fs-counter 0
     "How many fontset have been created by ZyEmacs.")
 
   (defun zy-fontlist-apply (fontlist &optional face frame)
@@ -543,9 +543,9 @@ The font system provides a more convenient interface for multilingual font setup
         (setq fontset
               (new-fontset
                (format "-*-*-*-*-*--*-*-*-*-*-*-fontset-zyfs%d"
-                       zy-font$-fs-counter)
+                       zy--fs-counter)
                nil)
-              zy-font$-fs-counter (+ zy-font$-fs-counter 1)
+              zy--fs-counter (+ zy--fs-counter 1)
               fontset-is-new t))
       ;; Loop 'cflist' to set font for each charset.
       (dolist (cfpair cflist)
