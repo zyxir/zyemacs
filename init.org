@@ -65,7 +65,7 @@ Prohibit GC at startup, and adjust the threshold thereafter.
                     gc-cons-percentage 0.1)))
 #+end_src
 
-** Load libraries
+** Load Libraries
 
 #+begin_src emacs-lisp
   (require 'cl-lib)
@@ -1138,6 +1138,18 @@ Load org-roam when ~org-roam-directory~ is valid.
 
   (when zy$use-org-roam-p
     (straight-use-package 'org-roam))
+#+end_src
+
+** Markdown
+
+#+begin_src emacs-lisp
+  (straight-use-package 'markdown-mode)
+  (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+  (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+  (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
+
+  (with-eval-after-load 'markdown-mode
+    (straight-use-package 'markdown-toc))
 #+end_src
 
 ** Verilog
