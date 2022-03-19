@@ -21,8 +21,8 @@ This section is inspired by [[https://docs.doomemacs.org/latest/#/developers/con
 Symbol names starts with ~NAMESPACE~, where ~NAMESPACE~ is usually ~zy~.
 
 - ~NAMESPACE/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
-- ~NAMESPACE-NAME~ :: A non-interactive function.
-- ~NAMESPACE$NAME~ :: A variable.
+- ~NAMESPACE$NAME~ :: A customizable variable.
+- ~NAMESPACE-NAME~ :: A non-interactive function, or a non-customizable variable.
 - ~NAMESPACE--NAME~ :: A protected function or variable.
 - ~abc!~ or ~NAMESPACE-abc!~ :: A macro.
 
@@ -139,14 +139,14 @@ Examples of these macros:
 ** Constants
 
 #+begin_src emacs-lisp
-  (defconst zy$*windows* (eq system-type 'windows-nt)
+  (defconst zy-*windows* (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
-  (defconst zy$*linux* (or (eq system-type 'gnu/linux)
+  (defconst zy-*linux* (or (eq system-type 'gnu/linux)
                             (eq system-type 'linux))
     "If Emacs is run on Linux.
 
   Note that WSL is also Linux.")
-  (defconst zy$*wsl* (equal
+  (defconst zy-*wsl* (equal
                        0
                        (shell-command
                         "grep -q microsoft /proc/version"))
@@ -178,14 +178,26 @@ Examples of these macros:
 Zybox is the collection of my personal files.
 
 #+begin_src emacs-lisp
-  (defvar zy$zybox-path nil
+  (defcustom zy$use-zybox-p t
+    "Should ZyEmacs use the workflow designed around Zybox.
+
+  Zybox is private directory of Zyxir, and ZyEmacs has a set of
+  utilities to work with Zybox. If you are not Zyxir, the workflow
+  is meaningless.
+
+  If no valid path of Zybox is detected or set by the user, this
+  value will be automatically set to nil."
+    :type 'boolean)
+
+  (defcustom zy$zybox-path nil
     "The path of Zybox, the collection of all my files.
 
-  This value should be manually set in custom.el, as it is
-  different on different machines.")
+  If it is not auto-detected, customize it to the actual path."
+    :type 'directory)
 
-  (unless zy$zybox-path
-    (let* ((zybox-possible-locs-win64
+  (defun zy--find-zybox ()
+    "Try to auto-detect the location of Zybox."
+    (let* ((zybox-possible-locs-windows
             '("C:\\Zybox"
               "C:\\Users\\zyxir\\Zybox"
               "C:\\Users\\zyxir\\Documents\\Zybox"))
@@ -195,18 +207,24 @@ Zybox is the collection of my personal files.
               "/mnt/c/Zybox"
               "/mnt/c/Users/zyxir/Zybox"
               "/mnt/c/Users/Documents/Zybox"))
-           (guessed-zybox-path
+           (path-found
             (cl-some
              (lambda (path) (when (file-directory-p path) path))
              (cond
-              (zy$*windows* zybox-possible-locs-win64)
-              (zy$*linux* zybox-possible-locs-linux)))))
-      (if guessed-zybox-path
-          (progn
-            (setq zy$zybox-path guessed-zybox-path)
-            (lwarn 'zyemacs :warning "Zybox is auto-detected at %s." zy$zybox-path)
-            (customize-save-variable 'zy$zybox-path zy$zybox-path))
-        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))))
+              (zy-*windows* zybox-possible-locs-windows)
+              (zy-*linux* zybox-possible-locs-linux)))))
+      (if path-found
+          (lwarn 'zyemacs :warning
+                 "Zybox is auto-detected at %s." path-found)
+        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
+      path-found))
+
+  (when (and zy$use-zybox-p
+             (not zy$zybox-path))
+    (setq zy$zybox-path (zy--find-zybox))
+    (if zy$zybox-path
+        (customize-save-variable 'zy$zybox-path zy$zybox-path)
+      (customize-save-variable 'zy$use-zybox-p nil)))
 #+end_src
 
 * Utilities | 組件
@@ -242,13 +260,17 @@ Install package with straight.
 
 ** General.el
 
-Manage keybinding with general.el, and rebind some default keys. Additionally,
-define ~M-m~ as my leader-key.
+Manage keybinding with general.el, and rebind some default keys. Additionally, define ~M-m~ as my leader-key.
 
 #+begin_src emacs-lisp
   (straight-use-package 'general)
-  (define-prefix-command 'zy$leader-map)
-  (general-define-key "M-m" 'zy$leader-map
+  (define-prefix-command 'zy-leader-map)
+
+  (defcustom zy$leader-key "M-m"
+    "The leader key of ZyEmacs."
+    :type 'key)
+
+  (general-define-key zy$leader-key 'zy-leader-map
                       "M-z" 'back-to-indentation)
 #+end_src
 
@@ -257,11 +279,11 @@ define ~M-m~ as my leader-key.
 Define several leader keymaps.
 
 #+begin_src emacs-lisp
-  (define-prefix-command 'zy$leader-config-map)
+  (define-prefix-command 'zy-leader-manage-map)
   (general-define-key
-   :keymaps 'zy$leader-map
-   "m" 'zy$leader-config-map
-   "M-m" 'zy$leader-config-map)
+   :keymaps 'zy-leader-map
+   "m" 'zy-leader-manage-map
+   "M-m" 'zy-leader-manage-map)
 #+end_src
 
 ** Vertico and Minibuffer
@@ -378,7 +400,7 @@ Register utilities have not been configured.
    auto-save-default nil
    disabled-command-function nil
    fill-column 80
-   frame-title-format (if zy$*windows*
+   frame-title-format (if zy-*windows*
                           '("" "windows-emacs" " [%b]")
                         '("" "emacs" " [%b]"))
    inhibit-compacting-font-caches t
@@ -437,7 +459,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 #+begin_src emacs-lisp
   (straight-use-package 'restart-emacs)
   (general-define-key
-   :keymaps 'zy$leader-config-map
+   :keymaps 'zy-leader-manage-map
    "R" 'restart-emacs
    "N" 'restart-emacs-start-new-emacs)
 #+end_src
@@ -455,30 +477,50 @@ Restart Emacs within Emacs, or open a new instance of Emacs.
 
 ** Theme
 
+*** Load Default Theme
+
 #+begin_src emacs-lisp
-  (unless (fboundp 'zy-setup-theme)
-    (defun zy-setup-theme ()
-      "Setup theme.
+  (defun zy-theme-func-default ()
+    "Default function to setup theme."
+    (if (display-graphic-p)
+        (progn
+          (straight-use-package 'spacemacs-theme)
+          (require 'spacemacs-common)
+          (load-theme 'spacemacs-light t))
+      (load-theme 'wombat t)))
 
-  This function can be overriden in custom file."
-      (if (display-graphic-p)
-          (progn
-            (straight-use-package 'spacemacs-theme)
-            (require 'spacemacs-common)
-            (load-theme 'spacemacs-light t))
-        (load-theme 'wombat t))))
+  (defcustom zy$theme-func #'zy-theme-func-default
+    "Function to setup theme."
+    :type 'function)
 
-  (zy-setup-theme)
+  (funcall zy$theme-func)
 
-  (defvar zy$use-solaire-p
-    (if (boundp 'zy$use-solaire-p)
-        zy$use-solaire-p
-      t)
-    "Whether Emacs should install and enable 'solaire-mode'.")
+  (defcustom zy$use-solaire-p t
+    "Should ZyEmacs install and enable 'solaire-mode'."
+    :type 'boolean)
 
   (when zy$use-solaire-p
     (straight-use-package 'solaire-mode)
     (solaire-global-mode +1))
+#+end_src
+
+*** Theme Hooks
+
+#+begin_src emacs-lisp
+  (defvar after-enable-theme-hook nil
+    "Hook run after a theme is enabled via `enable-theme'.
+
+  `enable-theme' always enables the theme 'user' as well, and that
+  won't trigger this hook.
+
+  Note that `load-theme' also runs `enable-theme'.")
+
+  (defun run-after-enable-theme-hook (theme)
+    "Run `after-enable-theme-hook'."
+    (unless (equal theme 'user)
+      (run-hooks 'after-enable-theme-hook)))
+
+  (advice-add #'enable-theme :after #'run-after-enable-theme-hook)
 #+end_src
 
 ** Font
@@ -645,7 +687,7 @@ Get a copy of the fontlist without the size information.
 
 *** Create and Apply Fontlists | 創建和應用字體列表
 
-You can customise font by setting these variables in ~custom.el~:
+You can customise these variables to modify fonts.
 
 - ~zy$fontlist-default~
 - ~zy$fontlist-varpitch~
@@ -655,7 +697,7 @@ You can customise font by setting these variables in ~custom.el~:
   (when (display-graphic-p)
     (add-hook-lambda! 'after-init-hook
 
-      (defconst zy$fontlist-default-preset
+      (defconst zy-fontlist-default-preset
         `(,(zy-pick-main-font! ("Sarasa Mono Slab TC" 16)
                                ("Iosevka Term Slab" 16)
                                ("Consolas" 16)
@@ -671,17 +713,15 @@ You can customise font by setting these variables in ~custom.el~:
                            "Wingdings")))
         "Preset value of `zy$fontlist-default'")
 
-      (defvar zy$fontlist-default
-        (if (boundp 'zy$fontlist-default)
-            zy$fontlist-default
-          zy$fontlist-default-preset)
-        "Fontlist used on most occasions.")
+      (defcustom zy$fontlist-default zy-fontlist-default-preset
+        "Fontlist used on most occasions."
+        :type 'sexp)
 
-      (defvar zy$fontlist-default-without-size
+      (defvar zy-fontlist-default-without-size
         (zy-copy-fontlist-without-size zy$fontlist-default)
         "Fontlist used on most occasions, without size information.")
 
-      (defconst zy$fontlist-varpitch-preset
+      (defconst zy-fontlist-varpitch-preset
         `(,(zy-pick-main-font! ("IBM Plex Serif" 18)
                                ("Times New Roman" 18)
                                ("serif" 18))
@@ -691,13 +731,11 @@ You can customise font by setting these variables in ~custom.el~:
                            "STSong")))
         "Preset value of `zy$fontlist-varpitch'")
 
-      (defvar zy$fontlist-varpitch
-        (if (boundp 'zy$fontlist-varpitch)
-            zy$fontlist-varpitch
-          zy$fontlist-varpitch-preset)
-        "Fontlist used for 'variable-pitch' face.")
+      (defcustom zy$fontlist-varpitch zy-fontlist-varpitch-preset
+        "Fontlist used for 'variable-pitch' face."
+        :type 'sexp)
 
-      (defconst zy$fontlist-title-preset
+      (defconst zy-fontlist-title-preset
         `(,(zy-pick-main-font! ("Roboto Slab")
                                ("Noto Sans")
                                ("Calibri")
@@ -710,11 +748,9 @@ You can customise font by setting these variables in ~custom.el~:
                            "Microsoft YaHei")))
         "Preset value of `zy$fontlist-title'")
 
-      (defvar zy$fontlist-title
-        (if (boundp 'zy$fontlist-title)
-            zy$fontlist-title
-          zy$fontlist-title-preset)
-        "Fontlist used for titles.")
+      (defcustom zy$fontlist-title zy-fontlist-title-preset
+        "Fontlist used for titles."
+        :type 'sexp)
 
       (zy-fontlist-apply zy$fontlist-default 'default)
       (zy-fontlist-apply zy$fontlist-varpitch 'variable-pitch)))
@@ -734,10 +770,18 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 *** Frame Size Definition
 
 #+begin_src emacs-lisp
-  (defvar zy$frame-size-standard '(100 40)
-    "Standard frame size for new frames.")
-  (defvar zy$frame-size-darkroom '(120 40)
-    "Standard frame size for Darkroom mode.")
+  (defcustom zy$frame-width-standard 100
+    "Standard frame width for new frames."
+    :type 'integer)
+  (defcustom zy$frame-height-standard 40
+    "Standard frame height for new frames."
+    :type 'integer)
+  (defcustom zy$frame-width-darkroom 120
+    "Standard frame width for Darkroom mode."
+    :type 'integer)
+  (defcustom zy$frame-height-darkroom 40
+    "Standard frame height for Darkroom mode."
+    :type 'integer)
 #+end_src
 
 *** Resize New Frames
@@ -750,24 +794,26 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   resize in the 'width-rem' and 'height-rem' frame parameters."
     (interactive)
     (when (display-graphic-p)
-      (let* ((standard-size (if (and (boundp 'darkroom-mode)
-                                     darkroom-mode)
-                                zy$frame-size-darkroom
-                              zy$frame-size-standard))
+      (let* ((width-standard (if (and (boundp 'darkroom-mode)
+                                      darkroom-mode)
+                                 zy$frame-width-darkroom
+                               zy$frame-width-standard))
+             (height-standard (if (and (boundp 'darkroom-mode)
+                                      darkroom-mode)
+                                 zy$frame-height-darkroom
+                               zy$frame-height-standard))
              (is-standard (and
-                           (= (frame-width) (car standard-size))
-                           (= (frame-height) (cadr standard-size))))
+                           (= (frame-width) width-standard)
+                           (= (frame-height) height-standard)))
              (width-rem (frame-parameter frame 'width-rem))
              (height-rem (frame-parameter frame 'height-rem)))
         (unless (or no-rem is-standard)
           (modify-frame-parameters frame
                                    `((width-rem . ,(frame-width))
                                      (height-rem . ,(frame-height)))))
-        (if (and is-standard width-rem)
+        (if (and is-standard width-rem height-rem)
             (set-frame-size frame width-rem height-rem)
-          (set-frame-size frame
-                          (car standard-size)
-                          (cadr standard-size))))))
+          (set-frame-size frame width-standard height-standard)))))
 
   (add-to-list 'after-make-frame-functions
                #'zy/resize-frame)
@@ -782,7 +828,7 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
   (setq darkroom-margins 0.1
         darkroom-text-scale-increase 1)
   (general-define-key
-   :keymaps 'zy$leader-config-map
+   :keymaps 'zy-leader-manage-map
    "d" #'darkroom-mode)
   (add-hook-lambda! 'darkroom-mode-hook
     (let ((inhibit-message t))
@@ -808,21 +854,23 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
                           (when frame (select-frame frame))
                           (count-windows))
                         1))
-        (let* ((cur-size `(,(frame-parameter frame 'width)
-                           ,(frame-parameter frame 'height)))
+        (let* ((width-cur (frame-parameter frame 'width))
+               (height-cur (frame-parameter frame 'height))
                (s2d (and (boundp 'darkroom-mode)
                          darkroom-mode
-                         (equal cur-size zy$frame-size-standard)))
-               (d2s (and (not (and (boundp 'darkroom-mode)
-                                   darkroom-mode))
-                         (equal cur-size zy$frame-size-darkroom))))
+                         (equal width-cur zy$frame-width-standard)
+                         (equal height-cur zy$frame-height-standard)))
+               (d2s (and (nand! (boundp 'darkroom-mode)
+                                darkroom-mode)
+                         (equal width-cur zy$frame-width-darkroom)
+                         (equal height-cur zy$frame-height-darkroom))))
           (cond
            (s2d (set-frame-size frame
-                                (car zy$frame-size-darkroom)
-                                (cadr zy$frame-size-darkroom)))
+                                zy$frame-width-darkroom
+                                zy$frame-height-darkroom))
            (d2s (set-frame-size frame
-                                (car zy$frame-size-standard)
-                                (cadr zy$frame-size-standard)))
+                                zy$frame-width-standard
+                                zy$frame-height-standard))
            (t nil)))))
 
     (add-hook 'darkroom-mode-hook #'zy-darkroom-switch-size)
@@ -849,17 +897,17 @@ Make everything UTF-8.
         rime-show-candidate 'posframe)
 
   ;; Make the cursor orange when IM is active
-  (defvar zy$im-cursor-color "#f68a06"
-      "Default cursor color if an input method is active.")
-  (defvar zy$default-cursor-color (frame-parameter nil 'cursor-color)
+  (defcustom zy$im-cursor-color "#f68a06"
+    "Default cursor color if an input method is active."
+    :type 'color)
+  (defvar zy--default-cursor-color (frame-parameter nil 'cursor-color)
     "Default text cursor color.")
-  (defun zy/change-cursor-color-on-im ()
+  (defun zy--change-cursor-color-on-im ()
     "Set cursor color depending IM state."
-    (interactive)
     (set-cursor-color (if current-input-method
                           zy$im-cursor-color
-                        zy$default-cursor-color)))
-  (add-hook 'post-command-hook 'zy/change-cursor-color-on-im)
+                        zy--default-cursor-color)))
+  (add-hook 'post-command-hook 'zy--change-cursor-color-on-im)
 #+end_src
 
 * Major Modes | 各主模式設置
@@ -889,88 +937,128 @@ Make everything UTF-8.
     (visual-line-mode +1))
 
   (with-eval-after-load 'org
-    ;; Headline faces.
-    (when (display-graphic-p)
-      (zy-fontlist-apply! zy$fontlist-title
-                          'org-level-1
-                          'org-level-2
-                          'org-level-3
-                          'org-level-4
-                          'org-level-5
-                          'org-level-6
-                          'org-level-7
-                          'org-level-8)
-      (dolist (level (number-sequence 1 8))
-        (set-face-attribute
-         (intern (format "org-level-%d" level))
-         nil
-         :height
-         (string-to-number (format "1.%d" (- 4 level)))
-         :weight
-         (if (< level 3)
-             'bold
-           'semi-bold)))
-      ;; Markup faces.
-      (zy-fontlist-apply! zy$fontlist-default-without-size
-                          'org-code
-                          'org-verbatim)
-      ;; Block faces.
-      (zy-fontlist-apply! zy$fontlist-default-without-size
-                          'org-block)))
-#+END_src
+    (defun zy--setup-org-faces ()
+      "Setup custom faces for org-mode."
+      (when (display-graphic-p)
+        ;; Headline faces.
+        (zy-fontlist-apply! zy$fontlist-title
+                            'org-level-1
+                            'org-level-2
+                            'org-level-3
+                            'org-level-4
+                            'org-level-5
+                            'org-level-6
+                            'org-level-7
+                            'org-level-8)
+        (dolist (level (number-sequence 1 8))
+          (set-face-attribute
+           (intern (format "org-level-%d" level))
+           nil
+           :height
+           (string-to-number (format "1.%d" (- 4 level)))
+           :weight
+           (if (< level 3)
+               'bold
+             'semi-bold)))
+        ;; Other faces.
+        (zy-fontlist-apply! zy-fontlist-default-without-size
+                            'org-block
+                            'org-code
+                            'org-todo
+                            'org-verbatim)
+        (set-face-attribute 'org-todo nil :weight 'bold)))
+    (zy--setup-org-faces)
+    (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
+#+end_src
 
 *** GTD System
 
+Enable the GTD system when ~zy$gtd-path~ is valid.
+
 #+begin_src emacs-lisp
-  (defvar zy$gtd-path (expand-file-name "org/org-gtd" zy$zybox-path)
-    "The path of my GTD system root.")
-  (defvar zy$gtd-inbox-path (expand-file-name "inbox.org" zy$gtd-path)
-    "The path of `inbox.org' of my GTD system.")
-  (defvar zy$gtd-gtd-path (expand-file-name "gtd.org" zy$gtd-path)
-    "The path of `gtd.org' of my GTD system.")
-  (defvar zy$gtd-someday-path (expand-file-name "someday.org" zy$gtd-path)
-    "The path of `someday.org' of my GTD system.")
+  (defcustom zy$use-gtd-p t
+    "Should ZyEmacs use the built-in GTD system.
 
-  (setq
-   org-agenda-files `(,zy$gtd-inbox-path
-                      ,zy$gtd-gtd-path
-                      ,zy$gtd-someday-path)
-   org-capture-templates `(("i" "inbox" entry
-                            (file+headline ,zy$gtd-inbox-path "inbox")
-                            "* TODO [#B] %U %i%?"
-                            :empty-lines 1)
-                           ("s" "someday" entry
-                            (file+headline ,zy$gtd-someday-path "someday")
-                            "* TODO [#C] %U %i%?"
-                            :empty-lines 1)
-                           ("t" "GTD" entry
-                            (file+olp+datetree ,zy$gtd-gtd-path)
-                            "* TODO [#B] %U %i%?"
-                            :empty-lines 1))
-   org-refile-targets `((,zy$gtd-gtd-path :maxlevel . 3)
-                        (,zy$gtd-someday-path :level . 1))
-   org-todo-keywords '((sequence "TODO(t)"
-                                 "IN PROCESS(i)"
-                                 "POSTPONED(p)"
-                                 "|"
-                                 "DONE(d)")
-                       (sequence "|"
-                                 "CANCELED(c)")
-                       (sequence "BUSY(b)"
-                                 "NOT BUSY(n)"
-                                 "|"))
-   org-todo-keyword-faces '(("TODO" . (:foreground "#B71C1C" :weight bold))
-                            ("IN PROCESS" . (:foreground "#8BC34A" :weight bold))
-                            ("POSTPONED" . (:foreground "#F57C00" :weight bold))
-                            ("DONE" . (:foreground "#33691E" :weight bold))
-                            ("CANCELED" . (:foreground "#757575" :weight bold))
-                            ("BUSY" . (:foreground "#B916FF" :weight bold))
-                            ("NOT BUSY" . (:foreground "#DE90FF" :weight bold))))
+  If `zy$gtd-path' does not exist as a directory, this variable
+  will be automatically set to nil."
+    :type 'boolean)
 
-  (general-define-key
-   :keymaps 'zy$leader-map
-   "a" 'org-agenda
-   "c" 'org-capture)
+  (defcustom zy$gtd-path (if zy$use-zybox-p
+                             (expand-file-name "org/org-gtd"
+                                               zy$zybox-path)
+                           org-directory)
+    "Where the GTD files are stored."
+    :type 'directory)
+
+  (unless (file-directory-p zy$gtd-path)
+    (setq zy$use-gtd-p nil))
+
+  (when zy$use-gtd-p
+    (defvar zy-gtd-inbox-file
+      (expand-file-name "inbox.org" zy$gtd-path)
+      "The path of \"inbox.org\" of the GTD system.")
+    (defvar zy-gtd-gtd-file
+      (expand-file-name "gtd.org" zy$gtd-path)
+      "The path of \"gtd.org\" of the GTD system.")
+    (defvar zy-gtd-someday-file
+      (expand-file-name "someday.org" zy$gtd-path)
+      "The path of \"someday.org\" of the GTD system.")
+    (defvar zy-gtd-files
+      `(,zy-gtd-inbox-file ,zy-gtd-gtd-file ,zy-gtd-someday-file)
+      "List of all files of the GTD system.")
+
+    ;; Create empty GTD file if not exists.
+    (dolist (file zy-gtd-files)
+      (unless (file-exists-p file)
+        (write-region "" nil file)))
+
+    (setq
+     org-agenda-files `(,zy-gtd-inbox-file
+                        ,zy-gtd-gtd-file
+                        ,zy-gtd-someday-file)
+     org-capture-templates `(("i" "inbox" entry
+                              (file+headline ,zy-gtd-inbox-file "inbox")
+                              "* TODO [#B] %u %i%?"
+                              :empty-lines 1)
+                             ("s" "someday" entry
+                              (file+headline ,zy-gtd-someday-file "someday")
+                              "* TODO [#C] %u %i%?"
+                              :empty-lines 1)
+                             ("t" "GTD" entry
+                              (file+olp+datetree ,zy-gtd-gtd-file)
+                              "* TODO [#B] %u %i%?"
+                              :empty-lines 1))
+     org-refile-targets `((,zy-gtd-gtd-file :maxlevel . 3)
+                          (,zy-gtd-someday-file :level . 1))
+     org-todo-keywords '((sequence "TODO(t)"
+                                   "IN PROCESS(i)"
+                                   "POSTPONED(p)"
+                                   "|"
+                                   "DONE(d)")
+                         (sequence "|"
+                                   "CANCELED(c)")
+                         (sequence "BUSY(b)"
+                                   "NOT BUSY(n)"
+                                   "|"))
+     org-todo-keyword-faces '(("TODO" .
+                               (:inherit org-todo :foreground "#B71C1C"))
+                              ("IN PROCESS" .
+                               (:inherit org-todo :foreground "#8BC34A"))
+                              ("POSTPONED" .
+                               (:inherit org-todo :foreground "#F57C00"))
+                              ("DONE" .
+                               (:inherit org-todo :foreground "#33691E"))
+                              ("CANCELED" .
+                               (:inherit org-todo :foreground "#757575"))
+                              ("BUSY" .
+                               (:inherit org-todo :foreground "#B916FF"))
+                              ("NOT BUSY" .
+                               (:inherit org-todo :foreground "#DE90FF"))))
+
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "a" 'org-agenda
+     "c" 'org-capture))
 #+end_src
 
 *** Org-Appear
@@ -999,7 +1087,7 @@ Make everything UTF-8.
                                           (43 . #x2666)
                                           (45 . #x27a4)))
   (with-eval-after-load 'org-superstar
-    (zy-fontlist-apply! zy$fontlist-default-without-size
+    (zy-fontlist-apply! zy-fontlist-default-without-size
                         'org-superstar-header-bullet
                         'org-superstar-item))
 #+end_src
@@ -1009,37 +1097,46 @@ Make everything UTF-8.
 #+begin_src emacs-lisp
   (straight-use-package 'org-journal)
   (general-define-key
-   :keymaps 'zy$leader-map
+   :keymaps 'zy-leader-map
    "g" 'calendar
    "j" 'org-journal-new-entry)
-  (setq org-journal-extend-today-until 3)
-  (when zy$zybox-path
-    (setq org-journal-dir (expand-file-name "org/org-journal" zy$zybox-path)
-          org-journal-file-format "%F.org"
-          org-journal-date-format "%F %a W%V\n"
-          org-journal-date-prefix "#+title: "
-          org-journal-time-format "%R "
-          org-journal-time-format-post-midnight "%R (midnight) "
-          org-journal-time-prefix "\n* "
-          org-journal-file-header ""))
+  (setq org-journal-extend-today-until 3
+        org-journal-file-format "%F.org"
+        org-journal-date-format "%F %a W%V\n"
+        org-journal-date-prefix "#+title: "
+        org-journal-time-format "%R "
+        org-journal-time-format-post-midnight "%R (midnight) "
+        org-journal-time-prefix "\n* "
+        org-journal-file-header "")
+  (when zy$use-zybox-p
+    (setq org-journal-dir
+          (expand-file-name "org/org-journal" zy$zybox-path)))
 #+end_src
 
 *** Org-Roam
 
 **** Setup
 
+Load org-roam when ~org-roam-directory~ is valid.
+
 #+begin_src emacs-lisp
   (when zy$zybox-path
-    (setq org-roam-directory (expand-file-name
-                              "org/org-roam"
-                              zy$zybox-path)))
+    (customize-set-value 'org-roam-directory
+                         (expand-file-name
+                          "org/org-roam"
+                          zy$zybox-path)))
 
-  (defvar zy$load-org-roam-p
-    (and (boundp 'org-roam-directory)
-         (file-directory-p org-roam-directory))
-    "Should org-roam be loaded.")
+  (defvar zy$use-org-roam-p t
+    "Should ZyEmacs use org-roam.
 
-  (when zy$load-org-roam-p
+  If `org-roam-directory' does not exist as a directory, this
+  variable will be automatically set to nil.")
+
+  (unless (and (boundp 'org-roam-directory)
+               (file-directory-p org-roam-directory))
+    (setq zy$use-org-roam-p nil))
+
+  (when zy$use-org-roam-p
     (straight-use-package 'org-roam))
 #+end_src
 
