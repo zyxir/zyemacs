@@ -626,6 +626,17 @@ Get a copy of the fontlist without the size information.
       new-fontlist))
 #+end_src
 
+Adjust the size of a fontlist.
+
+#+begin_src emacs-lisp
+  (defun zy-fontlist-adjust-size (fontlist adjust)
+    "Adjust the font size by ADJUST for FONTLIST."
+    (let* ((main (car fontlist))
+           (size (cadr main)))
+      (when size
+        (setcar (cdr main) (+ size adjust)))))
+#+end_src
+
 *** Macros | 宏
 
 #+begin_src emacs-lisp
@@ -692,6 +703,7 @@ You can customise these variables to modify fonts.
 - ~zy$fontlist-default~
 - ~zy$fontlist-varpitch~
 - ~zy$fontlist-title~
+- ~zy$font-size-adjust~
 
 #+begin_src emacs-lisp
   (when (display-graphic-p)
@@ -752,6 +764,14 @@ You can customise these variables to modify fonts.
         "Fontlist used for titles."
         :type 'sexp)
 
+      (defcustom zy$font-size-adjust 0
+        "How many pixels should font size be adjusted."
+        :type 'integer)
+
+      (dolist (fontlist `(,zy$fontlist-default
+                          ,zy$fontlist-varpitch
+                          ,zy$fontlist-title))
+        (zy-fontlist-adjust-size fontlist zy$font-size-adjust))
       (zy-fontlist-apply zy$fontlist-default 'default)
       (zy-fontlist-apply zy$fontlist-varpitch 'variable-pitch)))
 #+end_src
