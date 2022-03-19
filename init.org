@@ -233,7 +233,7 @@ Install package with straight.
   (setq straight-vc-git-default-clone-depth 1)
 #+end_src
 
-* Which-Key
+** Which-Key
 
 #+begin_src emacs-lisp
   (straight-use-package 'which-key)
@@ -1022,6 +1022,25 @@ Make everything UTF-8.
           org-journal-time-format-post-midnight "%R (midnight) "
           org-journal-time-prefix "\n* "
           org-journal-file-header ""))
+#+end_src
+
+*** Org-Roam
+
+**** Setup
+
+#+begin_src emacs-lisp
+  (when zy$zybox-path
+    (setq org-roam-directory (expand-file-name
+                              "org/org-roam"
+                              zy$zybox-path)))
+
+  (defvar zy$load-org-roam-p
+    (and (boundp 'org-roam-directory)
+         (file-directory-p org-roam-directory))
+    "Should org-roam be loaded.")
+
+  (when zy$load-org-roam-p
+    (straight-use-package 'org-roam))
 #+end_src
 
 ** Verilog
