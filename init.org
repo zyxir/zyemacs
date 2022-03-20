@@ -454,14 +454,34 @@ Register utilities have not been configured.
 
 ** Restart-Emacs
 
-Restart Emacs within Emacs, or open a new instance of Emacs.
+Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely useful for configuring Emacs.
+
+[2022-03-20 Sun] ~restart-emacs-start-new-emacs~ does not receive prefix arguments, so switch it to a working fork.
 
 #+begin_src emacs-lisp
-  (straight-use-package 'restart-emacs)
+  (straight-use-package '(restart-emacs
+                          :type git :host github
+                          :repo "wyuenho/restart-emacs"
+                          :branch "patch-1"))
+
+  (defun zy/tangle-config-and-start-new-emacs ()
+    "Tangle the config file and start a new instance of Emacs.
+
+  This is a handy function for daily configuration: it apply
+  `org-babel-tangle-file' on init.org to generate the modified
+  configuration, and start a new instance of Emacs to test the new
+  configuration, with --debug-init enabled."
+    (interactive)
+    (require 'ob)
+    (org-babel-tangle-file
+     (expand-file-name "init.org" user-emacs-directory))
+    (restart-emacs-start-new-emacs '("--debug-init")))
+
   (general-define-key
    :keymaps 'zy-leader-manage-map
    "R" 'restart-emacs
-   "N" 'restart-emacs-start-new-emacs)
+   "N" 'restart-emacs-start-new-emacs
+   "T" 'zy/tangle-config-and-start-new-emacs)
 #+end_src
 
 * UI | 用戶界面
