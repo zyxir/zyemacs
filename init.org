@@ -562,7 +562,9 @@ The core of the font system is the function ~zy-fontlist-apply~. It converts a f
 
 The font system provides a more convenient interface for multilingual font setup, compared to the default fontset interface. | 相較于默認的字體系統，這一字體系統提供了一個更便利的字體設置接口，能夠更方便地爲多個語言配置字體。
 
-*** Core Functions | 核心函數
+*** ~zy-fontlist-apply~
+
+Apply a fontlist to a given face.
 
 #+begin_src emacs-lisp
   (defvar zy--fs-counter 0
@@ -634,6 +636,8 @@ The font system provides a more convenient interface for multilingual font setup
         (set-face-attribute face frame :fontset fontset))))
 #+end_src
 
+*** ~zy-copy-fontlist-without-size~
+
 Get a copy of the fontlist without the size information.
 
 #+begin_src emacs-lisp
@@ -645,6 +649,8 @@ Get a copy of the fontlist without the size information.
         (setcar (cdr main) nil))
       new-fontlist))
 #+end_src
+
+*** ~zy-fontlist-adjust-size~
 
 Adjust the size of a fontlist.
 
