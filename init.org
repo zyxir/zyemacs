@@ -967,7 +967,6 @@ Make everything UTF-8.
   (straight-use-package '(org :type git :host github
                               :repo "bzg/org-mode"))
   (setq org-attach-id-dir "_org-att"
-        org-log-done 'time
         org-src-window-setup 'current-window
         org-tags-column 0)
   (add-hook-lambda! 'org-mode-hook
@@ -1053,6 +1052,8 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
         (write-region "" nil file)))
 
     (setq
+     org-log-done 'time
+     org-log-refile 'time
      org-agenda-files `(,zy-gtd-inbox-file
                         ,zy-gtd-gtd-file
                         ,zy-gtd-someday-file)
