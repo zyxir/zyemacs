@@ -65,13 +65,6 @@ Prohibit GC at startup, and adjust the threshold thereafter.
                     gc-cons-percentage 0.1)))
 #+end_src
 
-** Load Libraries
-
-#+begin_src emacs-lisp
-  (require 'cl-lib)
-  (require 'cl-extra)
-#+end_src
-
 ** My Macros
 
 *** Logical Macros
@@ -171,60 +164,6 @@ Examples of these macros:
       (when (file-directory-p dir)
 	(let ((default-directory dir))
 	  (normal-top-level-add-subdirs-to-load-path)))))
-#+end_src
-
-** User Paths
-
-Zybox is the collection of my personal files.
-
-#+begin_src emacs-lisp
-  (defcustom zy$use-zybox-p t
-    "Should ZyEmacs use the workflow designed around Zybox.
-
-  Zybox is private directory of Zyxir, and ZyEmacs has a set of
-  utilities to work with Zybox. If you are not Zyxir, the workflow
-  is meaningless.
-
-  If no valid path of Zybox is detected or set by the user, this
-  value will be automatically set to nil."
-    :type 'boolean)
-
-  (defcustom zy$zybox-path nil
-    "The path of Zybox, the collection of all my files.
-
-  If it is not auto-detected, customize it to the actual path."
-    :type 'directory)
-
-  (defun zy--find-zybox ()
-    "Try to auto-detect the location of Zybox."
-    (let* ((zybox-possible-locs-windows
-            '("C:\\Zybox"
-              "C:\\Users\\zyxir\\Zybox"
-              "C:\\Users\\zyxir\\Documents\\Zybox"))
-           (zybox-possible-locs-linux
-            '("~/Zybox"
-              "~/Documents/Zybox"
-              "/mnt/c/Zybox"
-              "/mnt/c/Users/zyxir/Zybox"
-              "/mnt/c/Users/Documents/Zybox"))
-           (path-found
-            (cl-some
-             (lambda (path) (when (file-directory-p path) path))
-             (cond
-              (zy-*windows* zybox-possible-locs-windows)
-              (zy-*linux* zybox-possible-locs-linux)))))
-      (if path-found
-          (lwarn 'zyemacs :warning
-                 "Zybox is auto-detected at %s." path-found)
-        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
-      path-found))
-
-  (when (and zy$use-zybox-p
-             (not zy$zybox-path))
-    (setq zy$zybox-path (zy--find-zybox))
-    (if zy$zybox-path
-        (customize-save-variable 'zy$zybox-path zy$zybox-path)
-      (customize-save-variable 'zy$use-zybox-p nil)))
 #+end_src
 
 * Utilities | 組件
@@ -389,6 +328,68 @@ Register utilities have not been configured.
     (require 'server)
     (unless (server-running-p)
       (server-start)))
+#+end_src
+
+** Zybox
+
+Zybox is the collection of my personal files.
+
+#+begin_src emacs-lisp
+  (defcustom zy$use-zybox-p t
+    "Should ZyEmacs use the workflow designed around Zybox.
+
+  Zybox is private directory of Zyxir, and ZyEmacs has a set of
+  utilities to work with Zybox. If you are not Zyxir, the workflow
+  is meaningless.
+
+  If no valid path of Zybox is detected or set by the user, this
+  value will be automatically set to nil."
+    :type 'boolean)
+
+  (defcustom zy$zybox-path nil
+    "The path of Zybox, the collection of all my files.
+
+  If it is not auto-detected, customize it to the actual path."
+    :type 'directory)
+
+  (defun zy--find-zybox ()
+    "Try to auto-detect the location of Zybox."
+    (let* ((zybox-possible-locs-windows
+            '("C:\\Zybox"
+              "C:\\Users\\zyxir\\Zybox"
+              "C:\\Users\\zyxir\\Documents\\Zybox"))
+           (zybox-possible-locs-linux
+            '("~/Zybox"
+              "~/Documents/Zybox"
+              "/mnt/c/Zybox"
+              "/mnt/c/Users/zyxir/Zybox"
+              "/mnt/c/Users/Documents/Zybox"))
+           (zybox-possible-locs
+            (cond
+             (zy-*windows* zybox-possible-locs-windows)
+             (zy-*linux* zybox-possible-locs-linux)
+             (t nil)))
+           loc-to-examine
+           path-found)
+      (while zybox-possible-locs
+        (setq loc-to-examine (car zybox-possible-locs))
+        (if (file-directory-p loc-to-examine)
+            (setq path-found loc-to-examine
+                  zybox-possible-locs nil)
+          (setq zybox-possible-locs
+                (cdr zybox-possible-locs))))
+      (if path-found
+          (lwarn 'zyemacs :warning
+                 "Zybox is auto-detected at %s." path-found)
+        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
+      path-found))
+
+  (when (and zy$use-zybox-p
+             (not zy$zybox-path))
+    (setq zy$zybox-path (zy--find-zybox))
+    (if zy$zybox-path
+        (customize-save-variable 'zy$zybox-path zy$zybox-path)
+      (customize-save-variable 'zy$use-zybox-p nil)))
 #+end_src
 
 * General | 一般性設置
