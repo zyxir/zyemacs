@@ -1,6 +1,8 @@
 # Generated files
+*.elc
 early-init.el
 init.el
+loaddefs.el
 straight
 
 # Local files

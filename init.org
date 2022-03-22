@@ -129,6 +129,14 @@ Examples of these macros:
     `(run-with-idle-timer ,secs nil (lambda () ,@body)))
 #+end_src
 
+** ZyEmacs Customisation Group
+
+#+begin_src emacs-lisp
+  (defgroup zyemacs nil
+    "ZyEmacs customisation options."
+    :group 'emacs)
+#+end_src
+
 ** Constants
 
 #+begin_src emacs-lisp
@@ -154,16 +162,67 @@ Examples of these macros:
     (load custom-file))
 #+end_src
 
-** Lisp Path
+** Lisp Path and Autoloads
 
 #+begin_src emacs-lisp
-  (let ((lisp-directories
-	 '("lisp" "site-lisp")))
-    (dolist (dir lisp-directories)
-      (setq dir (expand-file-name dir user-emacs-directory))
-      (when (file-directory-p dir)
-	(let ((default-directory dir))
-	  (normal-top-level-add-subdirs-to-load-path)))))
+  (defvar zy-lisp-dirs '("lisp" "site-lisp")
+    "Directories of ZyEmacs custom lisp scripts.
+
+  Directories are relative to `user-emasc-directory'.")
+
+  ;; Add to load path.
+
+  (defvar zy--lisp-dirs-abs
+    (remq nil
+          (mapcar
+           (lambda (dir)
+             (setq dir (file-truename
+                        (expand-file-name
+                         dir
+                         user-emacs-directory)))
+             (if (file-directory-p dir)
+                 dir
+               nil))
+           zy-lisp-dirs))
+    "Absolute paths of `zy-lisp-dirs'.
+
+  Non-existing directories are also deleted.")
+
+  (dolist (dir zy--lisp-dirs-abs)
+    (let ((default-directory dir))
+      (add-to-list 'load-path dir)
+      (normal-top-level-add-subdirs-to-load-path)))
+
+  ;; Generate autoloads on exit.
+
+  (defvar zy-loaddef-file (expand-file-name
+                           "loaddefs.el"
+                           user-emacs-directory)
+    "File that include all autoloads of custom lisp scripts.")
+
+  (defun zy/update-loaddefs ()
+    "Update all autoloads for non-package lisp codes."
+    (interactive)
+    (require 'autoload)
+    (unless (file-exists-p zy-loaddef-file)
+      (with-temp-buffer (write-file zy-loaddef-file)))
+    (let* ((zy--lisp-files
+            (apply
+             #'append
+             (remq nil
+                   (mapcar
+                    (lambda (dir)
+                      (directory-files dir t ".*\\.el$"))
+                    zy--lisp-dirs-abs)))))
+      (dolist (file zy--lisp-files)
+        (update-file-autoloads file t zy-loaddef-file))
+      (byte-compile-file zy-loaddef-file)))
+
+  (add-hook 'kill-emacs-hook #'zy/update-loaddefs)
+
+  ;; Load autoloads.
+
+  (load zy-loaddef-file)
 #+end_src
 
 * Utilities | 組件
@@ -207,7 +266,8 @@ Manage keybinding with general.el, and rebind some default keys. Additionally, d
 
   (defcustom zy$leader-key "M-m"
     "The leader key of ZyEmacs."
-    :type 'key)
+    :type 'key
+    :group 'zyemacs)
 
   (general-define-key zy$leader-key 'zy-leader-map
                       "M-z" 'back-to-indentation)
@@ -344,13 +404,15 @@ Zybox is the collection of my personal files.
 
   If no valid path of Zybox is detected or set by the user, this
   value will be automatically set to nil."
-    :type 'boolean)
+    :type 'boolean
+    :group 'zyemacs)
 
   (defcustom zy$zybox-path nil
     "The path of Zybox, the collection of all my files.
 
   If it is not auto-detected, customize it to the actual path."
-    :type 'directory)
+    :type 'directory
+    :group 'zyemacs)
 
   (defun zy--find-zybox ()
     "Try to auto-detect the location of Zybox."
@@ -476,6 +538,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     (require 'ob)
     (org-babel-tangle-file
      (expand-file-name "init.org" user-emacs-directory))
+    (zy/update-loaddefs)
     (restart-emacs-start-new-emacs '("--debug-init")))
 
   (general-define-key
@@ -512,13 +575,15 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
 
   (defcustom zy$theme-func #'zy-theme-func-default
     "Function to setup theme."
-    :type 'function)
+    :type 'function
+    :group 'zyemacs)
 
   (funcall zy$theme-func)
 
   (defcustom zy$use-solaire-p t
     "Should ZyEmacs install and enable 'solaire-mode'."
-    :type 'boolean)
+    :type 'boolean
+    :group 'zyemacs)
 
   (when zy$use-solaire-p
     (straight-use-package 'solaire-mode)
@@ -754,7 +819,8 @@ You can customise these variables to modify fonts.
 
       (defcustom zy$fontlist-default zy-fontlist-default-preset
         "Fontlist used on most occasions."
-        :type 'sexp)
+        :type 'sexp
+        :group 'zyemacs)
 
       (defvar zy-fontlist-default-without-size
         (zy-copy-fontlist-without-size zy$fontlist-default)
@@ -772,7 +838,8 @@ You can customise these variables to modify fonts.
 
       (defcustom zy$fontlist-varpitch zy-fontlist-varpitch-preset
         "Fontlist used for 'variable-pitch' face."
-        :type 'sexp)
+        :type 'sexp
+        :group 'zyemacs)
 
       (defconst zy-fontlist-title-preset
         `(,(zy-pick-main-font! ("Roboto Slab")
@@ -789,11 +856,13 @@ You can customise these variables to modify fonts.
 
       (defcustom zy$fontlist-title zy-fontlist-title-preset
         "Fontlist used for titles."
-        :type 'sexp)
+        :type 'sexp
+        :group 'zyemacs)
 
       (defcustom zy$font-size-adjust 0
         "How many pixels should font size be adjusted."
-        :type 'integer)
+        :type 'integer
+        :group 'zyemacs)
 
       (dolist (fontlist `(,zy$fontlist-default
                           ,zy$fontlist-varpitch
@@ -819,16 +888,20 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
 #+begin_src emacs-lisp
   (defcustom zy$frame-width-standard 100
     "Standard frame width for new frames."
-    :type 'integer)
+    :type 'integer
+    :group 'zyemacs)
   (defcustom zy$frame-height-standard 40
     "Standard frame height for new frames."
-    :type 'integer)
+    :type 'integer
+    :group 'zyemacs)
   (defcustom zy$frame-width-darkroom 120
     "Standard frame width for Darkroom mode."
-    :type 'integer)
+    :type 'integer
+    :group 'zyemacs)
   (defcustom zy$frame-height-darkroom 40
     "Standard frame height for Darkroom mode."
-    :type 'integer)
+    :type 'integer
+    :group 'zyemacs)
 #+end_src
 
 *** Resize New Frames
@@ -925,6 +998,43 @@ mono mono mono mono mono 等寬 等寬 等寬 等寬 等寬
                  #'zy-darkroom-switch-size))
 #+end_src
 
+** Mode Line
+
+*** Reformatted Mode Line
+
+#+begin_src emacs-lisp
+  (setq-default mode-line-format
+                '("%e" mode-line-front-space
+                  (:propertize
+                   ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
+                   display
+                   (min-width
+                    (5.0)))
+                  mode-line-frame-identification
+                  mode-line-buffer-identification
+                  "   "
+                  mode-line-position
+                  "  "
+                  mode-line-modes
+                  mode-line-misc-info
+                  mode-line-end-spaces))
+#+end_src
+
+*** Dim.el
+
+#+begin_src emacs-lisp
+  (straight-use-package 'dim)
+  (dim-minor-names '((buffer-face-mode nil face-remap)
+                     (eldoc-mode nil eldoc)
+                     (org-indent-mode nil org-indent)
+                     (org-src-mode nil org-src)
+                     (subword-mode nil subword)
+                     (super-save-mode nil super-save)
+                     (valign-mode nil valign)
+                     (visual-line-mode nil simple)
+                     (which-key-mode nil which-key)))
+#+end_src
+
 * Lingual | 語言相關
 ** Encoding
 
@@ -946,7 +1056,8 @@ Make everything UTF-8.
   ;; Make the cursor orange when IM is active
   (defcustom zy$im-cursor-color "#f68a06"
     "Default cursor color if an input method is active."
-    :type 'color)
+    :type 'color
+    :group 'zyemacs)
   (defvar zy--default-cursor-color (frame-parameter nil 'cursor-color)
     "Default text cursor color.")
   (defun zy--change-cursor-color-on-im ()
@@ -1027,14 +1138,16 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
 
   If `zy$gtd-path' does not exist as a directory, this variable
   will be automatically set to nil."
-    :type 'boolean)
+    :type 'boolean
+    :group 'zyemacs)
 
   (defcustom zy$gtd-path (if zy$use-zybox-p
                              (expand-file-name "org/org-gtd"
                                                zy$zybox-path)
                            org-directory)
     "Where the GTD files are stored."
-    :type 'directory)
+    :type 'directory
+    :group 'zyemacs)
 
   (unless (file-directory-p zy$gtd-path)
     (setq zy$use-gtd-p nil))
