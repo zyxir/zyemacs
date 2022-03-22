@@ -162,17 +162,19 @@ Examples of these macros:
     (load custom-file))
 #+end_src
 
-** Lisp Path and Autoloads
+** Load Path and Autoloads
 
 #+begin_src emacs-lisp
+  ;; Where custom scripts are placed.
+
   (defvar zy-lisp-dirs '("lisp" "site-lisp")
     "Directories of ZyEmacs custom lisp scripts.
 
   Directories are relative to `user-emasc-directory'.")
 
-  ;; Add to load path.
+  ;; Helper variables.
 
-  (defvar zy--lisp-dirs-abs
+  (defvar zy--lisp-dirs
     (remq nil
           (mapcar
            (lambda (dir)
@@ -184,45 +186,51 @@ Examples of these macros:
                  dir
                nil))
            zy-lisp-dirs))
-    "Absolute paths of `zy-lisp-dirs'.
+    "All valid directories of `zy-lisp-dirs', in absolute path.
 
-  Non-existing directories are also deleted.")
+  A directory being valid means it exists.")
 
-  (dolist (dir zy--lisp-dirs-abs)
+  ;; Populate load path.
+
+  (dolist (dir zy--lisp-dirs)
     (let ((default-directory dir))
       (add-to-list 'load-path dir)
       (normal-top-level-add-subdirs-to-load-path)))
 
-  ;; Generate autoloads on exit.
+  ;; A single file for autoloads.
 
-  (defvar zy-loaddef-file (expand-file-name
-                           "loaddefs.el"
-                           user-emacs-directory)
-    "File that include all autoloads of custom lisp scripts.")
+  (defvar zy-autoloads-file (expand-file-name
+                             "loaddefs.el"
+                             user-emacs-directory)
+    "File containing all autoloads for custom scripts.")
 
-  (defun zy/update-loaddefs ()
-    "Update all autoloads for non-package lisp codes."
+  ;; Autoloads updater.
+
+  (defun zy/update-autoloads ()
+    "Update all autoloads for non-package lisp scripts."
     (interactive)
     (require 'autoload)
-    (unless (file-exists-p zy-loaddef-file)
-      (with-temp-buffer (write-file zy-loaddef-file)))
-    (let* ((zy--lisp-files
-            (apply
-             #'append
-             (remq nil
+    (unless (file-exists-p zy-autoloads-file)
+      (with-temp-buffer (write-file zy-autoloads-file)))
+    (let* ((files (apply
+                   #'append
                    (mapcar
                     (lambda (dir)
-                      (directory-files dir t ".*\\.el$"))
-                    zy--lisp-dirs-abs)))))
-      (dolist (file zy--lisp-files)
-        (update-file-autoloads file t zy-loaddef-file))
-      (byte-compile-file zy-loaddef-file)))
+                      (directory-files-recursively dir ".*\\.el"))
+                    zy--lisp-dirs))))
+      (dolist (file files)
+        (let ((generated-autoload-load-name (file-name-base file)))
+          (update-file-autoloads file t zy-autoloads-file))))
+    (byte-compile-file zy-autoloads-file)
+    (load zy-autoloads-file))
 
-  (add-hook 'kill-emacs-hook #'zy/update-loaddefs)
+  ;; Update autoloads on exit.
 
-  ;; Load autoloads.
+  (add-hook 'kill-emacs-hook #'zy/update-autoloads)
 
-  (load zy-loaddef-file)
+  ;; Load autoloads now.
+
+  (load zy-autoloads-file)
 #+end_src
 
 * Utilities | 組件
@@ -538,7 +546,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     (require 'ob)
     (org-babel-tangle-file
      (expand-file-name "init.org" user-emacs-directory))
-    (zy/update-loaddefs)
+    (zy/update-autoloads)
     (restart-emacs-start-new-emacs '("--debug-init")))
 
   (general-define-key
