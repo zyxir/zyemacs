@@ -712,8 +712,6 @@ With which the fonts are customised below:
 
 ** Frame Size
 
-*** Frame Size Definition
-
 #+begin_src emacs-lisp
   (defcustom zy$frame-width-standard 100
     "Standard frame width for new frames."
@@ -731,11 +729,7 @@ With which the fonts are customised below:
     "Standard frame height for Darkroom mode."
     :type 'integer
     :group 'zyemacs)
-#+end_src
 
-*** Resize New Frames
-
-#+begin_src emacs-lisp
   (defun zy/resize-frame (&optional frame no-rem)
     "Resize FRAME to standard size.
 
@@ -748,7 +742,7 @@ With which the fonts are customised below:
                                  zy$frame-width-darkroom
                                zy$frame-width-standard))
              (height-standard (if (and (boundp 'darkroom-mode)
-                                      darkroom-mode)
+                                       darkroom-mode)
                                  zy$frame-height-darkroom
                                zy$frame-height-standard))
              (is-standard (and
@@ -829,9 +823,9 @@ With which the fonts are customised below:
 
 ** Mode Line
 
-*** Reformatted Mode Line
-
 #+begin_src emacs-lisp
+  ;; Simpler mode line.
+
   (setq-default mode-line-format
                 '("%e" mode-line-front-space
                   (:propertize
@@ -847,11 +841,9 @@ With which the fonts are customised below:
                   mode-line-modes
                   mode-line-misc-info
                   mode-line-end-spaces))
-#+end_src
 
-*** Dim.el
+  ;; Hide minor modes that I don't care.
 
-#+begin_src emacs-lisp
   (straight-use-package 'dim)
   (dim-minor-names '((buffer-face-mode nil face-remap)
                      (eldoc-mode nil eldoc)
