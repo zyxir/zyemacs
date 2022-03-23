@@ -222,7 +222,7 @@ Examples of these macros:
         (let ((generated-autoload-load-name (file-name-base file)))
           (update-file-autoloads file t zy-autoloads-file))))
     (byte-compile-file zy-autoloads-file)
-    (load zy-autoloads-file))
+    (load zy-autoloads-file t))
 
   ;; Update autoloads on exit.
 
@@ -230,7 +230,9 @@ Examples of these macros:
 
   ;; Load autoloads now.
 
-  (load zy-autoloads-file)
+  (if (file-exists-p zy-autoloads-file)
+      (load zy-autoloads-file t)
+    (zy/update-autoloads))
 #+end_src
 
 * Utilities | 組件
