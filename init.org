@@ -1010,28 +1010,18 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
                           (,zy-gtd-someday-file :level . 1))
      org-todo-keywords '((sequence "TODO(t)"
                                    "DOING(i)"
-                                   "POSTPONED(p)"
                                    "|"
                                    "DONE(d)")
                          (sequence "|"
-                                   "CANCELED(c)")
-                         (sequence "BUSY(b)"
-                                   "NOT BUSY(n)"
-                                   "|"))
+                                   "CANCELED(c)"))
      org-todo-keyword-faces '(("TODO" .
                                (:inherit org-todo :foreground "#B71C1C"))
                               ("DOING" .
                                (:inherit org-todo :foreground "#8BC34A"))
-                              ("POSTPONED" .
-                               (:inherit org-todo :foreground "#F57C00"))
                               ("DONE" .
                                (:inherit org-todo :foreground "#33691E"))
                               ("CANCELED" .
-                               (:inherit org-todo :foreground "#757575"))
-                              ("BUSY" .
-                               (:inherit org-todo :foreground "#B916FF"))
-                              ("NOT BUSY" .
-                               (:inherit org-todo :foreground "#DE90FF"))))
+                               (:inherit org-todo :foreground "#757575"))))
 
     (general-define-key
      :keymaps 'zy-leader-map
