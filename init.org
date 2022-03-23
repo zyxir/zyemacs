@@ -903,6 +903,11 @@ Make everything UTF-8.
 *** Basic Org
 
 #+begin_src emacs-lisp
+  (defcustom zy$use-variable-pitch-p t
+    "Should ZyEmacs use `variable-pitch-mode' in certain modes."
+    :type 'boolean
+    :group 'zyemacs)
+
   (straight-use-package '(org :type git :host github
                               :repo "bzg/org-mode"))
   (setq org-attach-id-dir "_org-att"
@@ -911,7 +916,8 @@ Make everything UTF-8.
   (add-hook-lambda! 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
-    (variable-pitch-mode +1)
+    (when zy$use-variable-pitch-p
+      (variable-pitch-mode +1))
     (visual-line-mode +1))
 
   (with-eval-after-load 'org
@@ -1056,7 +1062,8 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
                                           (45 . #x27a4)))
   (with-eval-after-load 'org-superstar
     (dolist (face '(org-superstar-header-bullet
-                    org-superstar-item))
+                    org-superstar-item
+                    org-superstar-leading))
       (zf-set-font zy$font-mono nil nil face)))
 #+end_src
 
