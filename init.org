@@ -466,7 +466,17 @@ Zybox is the collection of my personal files.
 
 * General | 一般性設置
 
-** Native Setqs
+** Magit
+
+#+begin_src emacs-lisp
+  (straight-use-package 'magit)
+  (general-define-key
+   :keymaps 'ctl-x-map
+   "g" 'magit-status
+   "M-g" 'magit-dispatch)
+#+end_src
+
+** Native Settings
 
 #+begin_src emacs-lisp
   (setq
@@ -478,14 +488,15 @@ Zybox is the collection of my personal files.
                         '("" "emacs" " [%b]"))
    inhibit-compacting-font-caches t
    make-backup-files nil
+   project-switch-commands '((project-find-file "Find file" "f")
+                             (project-find-regexp "Find regexp" "r")
+                             (project-find-dir "Find directory" "d")
+                             (project-eshell "Eshell" "s")
+                             (magit-project-status "Magit" "g"))
    system-time-locale "C"
    use-dialog-box nil
    word-wrap-by-category t)
-#+end_src
 
-** Native Modes
-
-#+begin_src emacs-lisp
   (add-hook-lambda! 'after-init-hook
     (delete-selection-mode +1)
     (global-auto-revert-mode +1)
@@ -498,33 +509,6 @@ Zybox is the collection of my personal files.
   (add-hooks-lambda! '(prog-mode-hook text-mode-hook)
     (setq-local show-trailing-whitespace t)
     (hl-line-mode +1))
-#+end_src
-
-** Super Save
-
-#+begin_src emacs-lisp
-  (straight-use-package 'super-save)
-  (setq super-save-auto-save-when-idle t)
-  (super-save-mode +1)
-#+end_src
-
-** Magit
-
-#+begin_src emacs-lisp
-  (straight-use-package 'magit)
-  (general-define-key
-   :keymaps 'ctl-x-map
-   "g" 'magit-status
-   "M-g" 'magit-dispatch)
-#+end_src
-
-** Valign
-
-#+begin_src emacs-lisp
-  (straight-use-package 'valign)
-  (add-hooks! '(org-mode-hook
-                markdown-mode-hook)
-              #'valign-mode)
 #+end_src
 
 ** Restart-Emacs
@@ -558,6 +542,23 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
    "R" 'restart-emacs
    "N" 'restart-emacs-start-new-emacs
    "T" 'zy/tangle-config-and-start-new-emacs)
+#+end_src
+
+** Super Save
+
+#+begin_src emacs-lisp
+  (straight-use-package 'super-save)
+  (setq super-save-auto-save-when-idle t)
+  (super-save-mode +1)
+#+end_src
+
+** Valign
+
+#+begin_src emacs-lisp
+  (straight-use-package 'valign)
+  (add-hooks! '(org-mode-hook
+                markdown-mode-hook)
+              #'valign-mode)
 #+end_src
 
 * UI | 用戶界面
@@ -839,6 +840,7 @@ With which the fonts are customised below:
                   mode-line-buffer-identification
                   "   "
                   mode-line-position
+                  (vc-mode vc-mode)
                   "  "
                   mode-line-modes
                   mode-line-misc-info
