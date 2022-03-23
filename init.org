@@ -932,9 +932,15 @@ Make everything UTF-8.
                  'bold
                'semi-bold))))
         ;; Other faces.
-        (dolist (face '(org-block org-code org-todo org-verbatim))
+        (dolist (face '(org-block org-code org-verbatim))
           (zf-set-font zy$font-mono nil zy$font-mono-cjk face))
-        (set-face-attribute 'org-todo nil :weight 'bold)))
+        (set-face-attribute 'org-todo nil
+                            :foreground 'unspecified
+                            :background 'unspecified
+                            :weight 'bold
+                            :font (zf-pick-font "Sarasa Mono TC"
+                                                "Noto Sans"
+                                                "Arial"))))
     (zy--setup-org-faces)
     (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
@@ -1003,7 +1009,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
      org-refile-targets `((,zy-gtd-gtd-file :maxlevel . 3)
                           (,zy-gtd-someday-file :level . 1))
      org-todo-keywords '((sequence "TODO(t)"
-                                   "IN PROCESS(i)"
+                                   "DOING(i)"
                                    "POSTPONED(p)"
                                    "|"
                                    "DONE(d)")
@@ -1014,7 +1020,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
                                    "|"))
      org-todo-keyword-faces '(("TODO" .
                                (:inherit org-todo :foreground "#B71C1C"))
-                              ("IN PROCESS" .
+                              ("DOING" .
                                (:inherit org-todo :foreground "#8BC34A"))
                               ("POSTPONED" .
                                (:inherit org-todo :foreground "#F57C00"))
