@@ -21,8 +21,8 @@ This section is inspired by [[https://docs.doomemacs.org/latest/#/developers/con
 Symbol names starts with ~NAMESPACE~, where ~NAMESPACE~ is usually ~zy~.
 
 - ~NAMESPACE/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
-- ~NAMESPACE$NAME~ :: A customisable variable.
 - ~NAMESPACE-NAME~ :: A non-interactive function, or a non-customisable variable.
+- ~NAMESPACE$-NAME~ :: A customisable variable.
 - ~NAMESPACE--NAME~ :: A protected function or variable.
 - ~abc!~ or ~NAMESPACE-abc!~ :: A macro.
 
@@ -67,34 +67,6 @@ Adjust GC and ~file-name-handler-alist~ during startup, to speed up initialisati
                     gc-cons-percentage 0.1
                     file-name-handler-alist (append file-name-handler-alist
                                                     --fnha--))))
-#+end_src
-
-** Definitions
-
-Personal information and top-level definitions.
-
-#+begin_src emacs-lisp
-  (setq user-full-name "Eric Zhuo Chen"
-        user-mail-address "zyxirchen@outlook.com")
-
-  (defgroup zyemacs nil
-    "ZyEmacs customisation options."
-    :group 'emacs)
-
-  (defconst zy-*windows* (eq system-type 'windows-nt)
-    "If Emacs is run on Windows.")
-
-  (defconst zy-*linux* (or (eq system-type 'gnu/linux)
-                            (eq system-type 'linux))
-    "If Emacs is run on Linux.
-
-  Note that WSL is also Linux.")
-
-  (defconst zy-*wsl* (equal
-                       0
-                       (shell-command
-                        "grep -q microsoft /proc/version"))
-    "If Emacs is run on WSL.")
 #+end_src
 
 ** Load Path and Autoloads
@@ -178,6 +150,34 @@ Load the custom file, populate ~load-path~, and deal with autoloads.
     (zy/update-autoloads))
 #+end_src
 
+** Definitions
+
+Personal information and top-level definitions.
+
+#+begin_src emacs-lisp
+  (setq user-full-name "Eric Zhuo Chen"
+        user-mail-address "zyxirchen@outlook.com")
+
+  (defgroup zyemacs nil
+    "ZyEmacs customisation options."
+    :group 'emacs)
+
+  (defconst zy-*windows* (eq system-type 'windows-nt)
+    "If Emacs is run on Windows.")
+
+  (defconst zy-*linux* (or (eq system-type 'gnu/linux)
+                            (eq system-type 'linux))
+    "If Emacs is run on Linux.
+
+  Note that WSL is also Linux.")
+
+  (defconst zy-*wsl* (equal
+                       0
+                       (shell-command
+                        "grep -q microsoft /proc/version"))
+    "If Emacs is run on WSL.")
+#+end_src
+
 * Utilities | 組件
 
 ** Package
@@ -221,12 +221,12 @@ Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The
 
   ;; Setup leader key.
 
-  (defcustom zy$leader-key "M-m"
+  (defcustom zy$-leader-key "M-m"
     "The leader key of ZyEmacs."
     :type 'key
     :group 'zyemacs)
   (define-prefix-command 'zy-leader-map)
-  (general-define-key zy$leader-key 'zy-leader-map
+  (general-define-key zy$-leader-key 'zy-leader-map
                       "M-z" 'back-to-indentation)
 
   ;; Setup other prefix commands.
@@ -351,7 +351,7 @@ Setup Vertico and other tools.
 Zybox is the collection of my personal files.
 
 #+begin_src emacs-lisp
-  (defcustom zy$use-zybox-p t
+  (defcustom zy$-use-zybox-p t
     "Should ZyEmacs use the workflow designed around Zybox.
 
   Zybox is private directory of Zyxir, and ZyEmacs has a set of
@@ -363,7 +363,7 @@ Zybox is the collection of my personal files.
     :type 'boolean
     :group 'zyemacs)
 
-  (defcustom zy$zybox-path nil
+  (defcustom zy$-zybox-path nil
     "The path of Zybox, the collection of all my files.
 
   If it is not auto-detected, customise it to the actual path."
@@ -402,12 +402,12 @@ Zybox is the collection of my personal files.
         (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
       path-found))
 
-  (when (and zy$use-zybox-p
-             (not zy$zybox-path))
-    (setq zy$zybox-path (zy--find-zybox))
-    (if zy$zybox-path
-        (customize-save-variable 'zy$zybox-path zy$zybox-path)
-      (customize-save-variable 'zy$use-zybox-p nil)))
+  (when (and zy$-use-zybox-p
+             (not zy$-zybox-path))
+    (setq zy$-zybox-path (zy--find-zybox))
+    (if zy$-zybox-path
+        (customize-save-variable 'zy$-zybox-path zy$-zybox-path)
+      (customize-save-variable 'zy$-use-zybox-p nil)))
 #+end_src
 
 * General | 一般性設置
@@ -546,19 +546,19 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
           (load-theme 'spacemacs-light t))
       (load-theme 'wombat t)))
 
-  (defcustom zy$theme-func #'zy-theme-func-default
+  (defcustom zy$-theme-func #'zy-theme-func-default
     "Function to setup theme."
     :type 'function
     :group 'zyemacs)
 
-  (funcall zy$theme-func)
+  (funcall zy$-theme-func)
 
-  (defcustom zy$use-solaire-p t
+  (defcustom zy$-use-solaire-p t
     "Should ZyEmacs install and enable 'solaire-mode'."
     :type 'boolean
     :group 'zyemacs)
 
-  (when zy$use-solaire-p
+  (when zy$-use-solaire-p
     (zy-pkg! 'solaire-mode)
     (solaire-global-mode +1))
 #+end_src
@@ -596,16 +596,16 @@ The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
 With which the fonts are customised below:
 
 #+begin_src emacs-lisp
-  (defcustom zy$font-mono (zf-pick-font
-                           "Sarasa Mono Slab TC"
-                           "Iosevka Term Slab"
-                           "Consolas"
-                           "monospace")
+  (defcustom zy$-font-mono (zf-pick-font
+                            "Sarasa Mono Slab TC"
+                            "Iosevka Term Slab"
+                            "Consolas"
+                            "monospace")
     "Monospace font. Used on most occasions."
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-mono-cjk (zf-pick-font
+  (defcustom zy$-font-mono-cjk (zf-pick-font
                                "GenYoGothic TW"
                                "Sarasa Mono Slab TC"
                                "Microsoft YaHei"
@@ -614,7 +614,7 @@ With which the fonts are customised below:
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-sans (zf-pick-font
+  (defcustom zy$-font-sans (zf-pick-font
                            "Roboto Slab"
                            "Noto Sans"
                            "Calibri"
@@ -623,7 +623,7 @@ With which the fonts are customised below:
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-sans-cjk (zf-pick-font
+  (defcustom zy$-font-sans-cjk (zf-pick-font
                                "GenYoGothic TW"
                                "Sarasa Mono Slab TC"
                                "Microsoft YaHei"
@@ -632,7 +632,7 @@ With which the fonts are customised below:
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-serif (zf-pick-font
+  (defcustom zy$-font-serif (zf-pick-font
                             "IBM Plex Serif"
                             "Noto Serif"
                             "Times New Roman"
@@ -641,7 +641,7 @@ With which the fonts are customised below:
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-serif-cjk (zf-pick-font
+  (defcustom zy$-font-serif-cjk (zf-pick-font
                                 "GenYoMin TW"
                                 "Noto Serif CJK TC"
                                 "STSong"
@@ -650,12 +650,12 @@ With which the fonts are customised below:
     :type 'sexp
     :group 'zyemacs)
 
-  (defcustom zy$font-size 16
+  (defcustom zy$-font-size 16
     "Default font size for the UI."
     :type 'integer
     :group 'zyemacs)
 
-  (defcustom zy$font-size-vp 18
+  (defcustom zy$-font-size-vp 18
     "Default font size for the 'variable-pitch' face."
     :type 'integer
     :group 'zyemacs)
@@ -666,10 +666,10 @@ With which the fonts are customised below:
   Does nothing in a terminal environment."
     (when (display-graphic-p)
       ;; Set monospace font as default.
-      (zf-set-font zy$font-mono zy$font-size zy$font-mono-cjk
+      (zf-set-font zy$-font-mono zy$-font-size zy$-font-mono-cjk
                    'default)
       ;; Set serif font as the variable pitch font.
-      (zf-set-font zy$font-serif zy$font-size-vp zy$font-serif-cjk
+      (zf-set-font zy$-font-serif zy$-font-size-vp zy$-font-serif-cjk
                    'variable-pitch)))
 
   (add-hook 'after-init-hook #'zy-setup-font)
@@ -678,19 +678,19 @@ With which the fonts are customised below:
 ** Frame Size
 
 #+begin_src emacs-lisp
-  (defcustom zy$frame-width-standard 100
+  (defcustom zy$-frame-width-standard 100
     "Standard frame width for new frames."
     :type 'integer
     :group 'zyemacs)
-  (defcustom zy$frame-height-standard 40
+  (defcustom zy$-frame-height-standard 40
     "Standard frame height for new frames."
     :type 'integer
     :group 'zyemacs)
-  (defcustom zy$frame-width-darkroom 120
+  (defcustom zy$-frame-width-darkroom 120
     "Standard frame width for Darkroom mode."
     :type 'integer
     :group 'zyemacs)
-  (defcustom zy$frame-height-darkroom 40
+  (defcustom zy$-frame-height-darkroom 40
     "Standard frame height for Darkroom mode."
     :type 'integer
     :group 'zyemacs)
@@ -704,12 +704,12 @@ With which the fonts are customised below:
     (when (display-graphic-p)
       (let* ((width-standard (if (and (boundp 'darkroom-mode)
                                       darkroom-mode)
-                                 zy$frame-width-darkroom
-                               zy$frame-width-standard))
+                                 zy$-frame-width-darkroom
+                               zy$-frame-width-standard))
              (height-standard (if (and (boundp 'darkroom-mode)
                                        darkroom-mode)
-                                 zy$frame-height-darkroom
-                               zy$frame-height-standard))
+                                 zy$-frame-height-darkroom
+                               zy$-frame-height-standard))
              (is-standard (and
                            (= (frame-width) width-standard)
                            (= (frame-height) height-standard)))
@@ -751,10 +751,10 @@ With which the fonts are customised below:
   FRAME, and GUI is active. Otherwise, do nothing.
 
   If 'darkroom-mode' is enabled, and current frame size is
-  `zy$frame-size-standard', resize to `zy$frame-size-darkroom'.
+  `zy$-frame-size-standard', resize to `zy$-frame-size-darkroom'.
 
   If 'darkroom-mode' is disabled, and current frame size is
-  `zy$frame-size-darkroom', resize to `zy$frame-size-standard'.
+  `zy$-frame-size-darkroom', resize to `zy$-frame-size-standard'.
 
   Otherwise, do nothing."
       (when (and (display-graphic-p)
@@ -766,20 +766,20 @@ With which the fonts are customised below:
                (height-cur (frame-parameter frame 'height))
                (s2d (and (boundp 'darkroom-mode)
                          darkroom-mode
-                         (equal width-cur zy$frame-width-standard)
-                         (equal height-cur zy$frame-height-standard)))
+                         (equal width-cur zy$-frame-width-standard)
+                         (equal height-cur zy$-frame-height-standard)))
                (d2s (and (not
                           (and (boundp 'darkroom-mode)
                                darkroom-mode))
-                         (equal width-cur zy$frame-width-darkroom)
-                         (equal height-cur zy$frame-height-darkroom))))
+                         (equal width-cur zy$-frame-width-darkroom)
+                         (equal height-cur zy$-frame-height-darkroom))))
           (cond
            (s2d (set-frame-size frame
-                                zy$frame-width-darkroom
-                                zy$frame-height-darkroom))
+                                zy$-frame-width-darkroom
+                                zy$-frame-height-darkroom))
            (d2s (set-frame-size frame
-                                zy$frame-width-standard
-                                zy$frame-height-standard))
+                                zy$-frame-width-standard
+                                zy$-frame-height-standard))
            (t nil)))))
 
     (add-hook 'darkroom-mode-hook #'zy-darkroom-switch-size)
@@ -842,7 +842,7 @@ Make everything UTF-8.
         rime-show-candidate 'posframe)
 
   ;; Make the cursor orange when IM is active
-  (defcustom zy$im-cursor-color "#f68a06"
+  (defcustom zy$-im-cursor-color "#f68a06"
     "Default cursor color if an input method is active."
     :type 'color
     :group 'zyemacs)
@@ -851,7 +851,7 @@ Make everything UTF-8.
   (defun zy--change-cursor-color-on-im ()
     "Set cursor color depending IM state."
     (set-cursor-color (if current-input-method
-                          zy$im-cursor-color
+                          zy$-im-cursor-color
                         zy--default-cursor-color)))
   (add-hook 'post-command-hook 'zy--change-cursor-color-on-im)
 #+end_src
@@ -882,7 +882,7 @@ Make everything UTF-8.
 *** Basic Org
 
 #+begin_src emacs-lisp
-  (defcustom zy$use-variable-pitch-p t
+  (defcustom zy$-use-variable-pitch-p t
     "Should ZyEmacs use `variable-pitch-mode' in certain modes."
     :type 'boolean
     :group 'zyemacs)
@@ -895,7 +895,7 @@ Make everything UTF-8.
   (add-hook! 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
-    (when zy$use-variable-pitch-p
+    (when zy$-use-variable-pitch-p
       (variable-pitch-mode +1))
     (visual-line-mode +1))
 
@@ -906,7 +906,7 @@ Make everything UTF-8.
         ;; Headline faces.
         (dolist (level (number-sequence 1 8))
           (let ((face (intern (format "org-level-%d" level))))
-            (zf-set-font zy$font-sans nil zy$font-sans-cjk face)
+            (zf-set-font zy$-font-sans nil zy$-font-sans-cjk face)
             (set-face-attribute
              face
              nil
@@ -918,7 +918,7 @@ Make everything UTF-8.
                'semi-bold))))
         ;; Other faces.
         (dolist (face '(org-block org-code org-verbatim))
-          (zf-set-font zy$font-mono nil zy$font-mono-cjk face))
+          (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face))
         (set-face-attribute 'org-todo nil
                             :foreground 'unspecified
                             :background 'unspecified
@@ -932,37 +932,37 @@ Make everything UTF-8.
 
 *** GTD System
 
-Enable the GTD system when ~zy$gtd-path~ is valid.
+Enable the GTD system when ~zy$-gtd-path~ is valid.
 
 #+begin_src emacs-lisp
-  (defcustom zy$use-gtd-p t
+  (defcustom zy$-use-gtd-p t
     "Should ZyEmacs use the built-in GTD system.
 
-  If `zy$gtd-path' does not exist as a directory, this variable
+  If `zy$-gtd-path' does not exist as a directory, this variable
   will be automatically set to nil."
     :type 'boolean
     :group 'zyemacs)
 
-  (defcustom zy$gtd-path (if zy$use-zybox-p
+  (defcustom zy$-gtd-path (if zy$-use-zybox-p
                              (expand-file-name "org/org-gtd"
-                                               zy$zybox-path)
+                                               zy$-zybox-path)
                            org-directory)
     "Where the GTD files are stored."
     :type 'directory
     :group 'zyemacs)
 
-  (unless (file-directory-p zy$gtd-path)
-    (setq zy$use-gtd-p nil))
+  (unless (file-directory-p zy$-gtd-path)
+    (setq zy$-use-gtd-p nil))
 
-  (when zy$use-gtd-p
+  (when zy$-use-gtd-p
     (defvar zy-gtd-inbox-file
-      (expand-file-name "inbox.org" zy$gtd-path)
+      (expand-file-name "inbox.org" zy$-gtd-path)
       "The path of \"inbox.org\" of the GTD system.")
     (defvar zy-gtd-gtd-file
-      (expand-file-name "gtd.org" zy$gtd-path)
+      (expand-file-name "gtd.org" zy$-gtd-path)
       "The path of \"gtd.org\" of the GTD system.")
     (defvar zy-gtd-someday-file
-      (expand-file-name "someday.org" zy$gtd-path)
+      (expand-file-name "someday.org" zy$-gtd-path)
       "The path of \"someday.org\" of the GTD system.")
     (defvar zy-gtd-files
       `(,zy-gtd-inbox-file ,zy-gtd-gtd-file ,zy-gtd-someday-file)
@@ -1043,7 +1043,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
     (dolist (face '(org-superstar-header-bullet
                     org-superstar-item
                     org-superstar-leading))
-      (zf-set-font zy$font-mono nil nil face)))
+      (zf-set-font zy$-font-mono nil nil face)))
 #+end_src
 
 *** Org-Journal
@@ -1062,9 +1062,9 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
         org-journal-time-format-post-midnight "%R (midnight) "
         org-journal-time-prefix "\n* "
         org-journal-file-header "")
-  (when zy$use-zybox-p
+  (when zy$-use-zybox-p
     (setq org-journal-dir
-          (expand-file-name "org/org-journal" zy$zybox-path)))
+          (expand-file-name "org/org-journal" zy$-zybox-path)))
 #+end_src
 
 *** Org-Roam
@@ -1074,13 +1074,13 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
 Load org-roam when ~org-roam-directory~ is valid.
 
 #+begin_src emacs-lisp
-  (when zy$zybox-path
+  (when zy$-zybox-path
     (customize-set-value 'org-roam-directory
                          (expand-file-name
                           "org/org-roam"
-                          zy$zybox-path)))
+                          zy$-zybox-path)))
 
-  (defvar zy$use-org-roam-p t
+  (defvar zy$-use-org-roam-p t
     "Should ZyEmacs use org-roam.
 
   If `org-roam-directory' does not exist as a directory, this
@@ -1088,9 +1088,9 @@ Load org-roam when ~org-roam-directory~ is valid.
 
   (unless (and (boundp 'org-roam-directory)
                (file-directory-p org-roam-directory))
-    (setq zy$use-org-roam-p nil))
+    (setq zy$-use-org-roam-p nil))
 
-  (when zy$use-org-roam-p
+  (when zy$-use-org-roam-p
     (zy-pkg! 'org-roam))
 #+end_src
 
