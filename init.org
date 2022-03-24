@@ -21,8 +21,8 @@ This section is inspired by [[https://docs.doomemacs.org/latest/#/developers/con
 Symbol names starts with ~NAMESPACE~, where ~NAMESPACE~ is usually ~zy~.
 
 - ~NAMESPACE/NAME~ :: A public command designed to be used interactively, via =M-x= or a keybinding.
-- ~NAMESPACE$NAME~ :: A customizable variable.
-- ~NAMESPACE-NAME~ :: A non-interactive function, or a non-customizable variable.
+- ~NAMESPACE$NAME~ :: A customisable variable.
+- ~NAMESPACE-NAME~ :: A non-interactive function, or a non-customisable variable.
 - ~NAMESPACE--NAME~ :: A protected function or variable.
 - ~abc!~ or ~NAMESPACE-abc!~ :: A macro.
 
@@ -362,7 +362,7 @@ Zybox is the collection of my personal files.
   (defcustom zy$zybox-path nil
     "The path of Zybox, the collection of all my files.
 
-  If it is not auto-detected, customize it to the actual path."
+  If it is not auto-detected, customise it to the actual path."
     :type 'directory
     :group 'zyemacs)
 
