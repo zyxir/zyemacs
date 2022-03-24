@@ -129,24 +129,22 @@ Examples of these macros:
     `(run-with-idle-timer ,secs nil (lambda () ,@body)))
 #+end_src
 
-** ZyEmacs Customisation Group
+** Definitions
 
 #+begin_src emacs-lisp
   (defgroup zyemacs nil
     "ZyEmacs customisation options."
     :group 'emacs)
-#+end_src
 
-** Constants
-
-#+begin_src emacs-lisp
   (defconst zy-*windows* (eq system-type 'windows-nt)
     "If Emacs is run on Windows.")
+
   (defconst zy-*linux* (or (eq system-type 'gnu/linux)
                             (eq system-type 'linux))
     "If Emacs is run on Linux.
 
   Note that WSL is also Linux.")
+
   (defconst zy-*wsl* (equal
                        0
                        (shell-command
@@ -154,18 +152,18 @@ Examples of these macros:
     "If Emacs is run on WSL.")
 #+end_src
 
-** Load ~custom.el~
+** Load Path and Autoloads
+
+Load the custom file, populate ~load-path~, and deal with autoloads.
 
 #+begin_src emacs-lisp
+  ;; Load the custom file.
+
   (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
   (when (file-exists-p custom-file)
     (load custom-file))
-#+end_src
 
-** Load Path and Autoloads
-
-#+begin_src emacs-lisp
-  ;; Where custom scripts are placed.
+  ;; Define the location of custom scripts.
 
   (defvar zy-lisp-dirs '("lisp" "site-lisp")
     "Directories of ZyEmacs custom lisp scripts.
@@ -190,7 +188,7 @@ Examples of these macros:
 
   A directory being valid means it exists.")
 
-  ;; Populate load path.
+  ;; Populate `load-path'.
 
   (dolist (dir zy--lisp-dirs)
     (let ((default-directory dir))
@@ -237,9 +235,9 @@ Examples of these macros:
 
 * Utilities | 組件
 
-** Straight
+** Package
 
-Install package with straight.
+Manage package with straight.
 
 #+begin_src emacs-lisp
   (unless (featurep 'straight)
@@ -259,43 +257,42 @@ Install package with straight.
   (setq straight-vc-git-default-clone-depth 1)
 #+end_src
 
-** Which-Key
+** Key-Binding
+
+Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The leader key of ZyEmacs, which is =M-m= by default, is also defined here.
 
 #+begin_src emacs-lisp
-  (straight-use-package 'which-key)
-  (which-key-mode +1)
-#+end_src
+  ;; Setup general.
 
-** General.el
-
-Manage keybinding with general.el, and rebind some default keys. Additionally, define ~M-m~ as my leader-key.
-
-#+begin_src emacs-lisp
   (straight-use-package 'general)
-  (define-prefix-command 'zy-leader-map)
+
+  ;; Setup leader key.
 
   (defcustom zy$leader-key "M-m"
     "The leader key of ZyEmacs."
     :type 'key
     :group 'zyemacs)
-
+  (define-prefix-command 'zy-leader-map)
   (general-define-key zy$leader-key 'zy-leader-map
                       "M-z" 'back-to-indentation)
-#+end_src
 
-** ZyEmacs Keymaps
+  ;; Setup other prefix commands.
 
-Define several leader keymaps.
-
-#+begin_src emacs-lisp
   (define-prefix-command 'zy-leader-manage-map)
   (general-define-key
    :keymaps 'zy-leader-map
    "m" 'zy-leader-manage-map
    "M-m" 'zy-leader-manage-map)
+
+  ;; Setup which-key.
+
+  (straight-use-package 'which-key)
+  (which-key-mode +1)
 #+end_src
 
-** Vertico and Minibuffer
+** Minibuffer
+
+Setup Vertico and other tools.
 
 #+begin_src emacs-lisp
   ;; Setup Vertico.
@@ -321,13 +318,9 @@ Define several leader keymaps.
         '(read-only t cursor-intangible t face minibuffer-prompt)
         enable-recursive-minibuffers t)
   (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
-#+end_src
 
-** Consult
+  ;; Consult provides a bunch of useful commands.
 
-Register utilities have not been configured.
-
-#+begin_src emacs-lisp
   (straight-use-package 'consult)
   (setq completion-in-region-function
         #'consult-completion-in-region)
@@ -466,17 +459,7 @@ Zybox is the collection of my personal files.
 
 * General | 一般性設置
 
-** Magit
-
-#+begin_src emacs-lisp
-  (straight-use-package 'magit)
-  (general-define-key
-   :keymaps 'ctl-x-map
-   "g" 'magit-status
-   "M-g" 'magit-dispatch)
-#+end_src
-
-** Native Settings
+** Basic Settings
 
 #+begin_src emacs-lisp
   (setq
@@ -489,10 +472,11 @@ Zybox is the collection of my personal files.
    inhibit-compacting-font-caches t
    make-backup-files nil
    project-switch-commands '((project-find-file "Find file" "f")
-                             (project-find-regexp "Find regexp" "r")
+                             (project-find-regexp "Find regexp" "g")
                              (project-find-dir "Find directory" "d")
+                             (project-vc-dir "VC-Dir" "v")
                              (project-eshell "Eshell" "s")
-                             (magit-project-status "Magit" "g"))
+                             (magit-project-status "Magit" "m"))
    system-time-locale "C"
    use-dialog-box nil
    word-wrap-by-category t)
@@ -552,13 +536,34 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
   (super-save-mode +1)
 #+end_src
 
-** Valign
+** Text Alignment
 
 #+begin_src emacs-lisp
+  ;; Valign visually aligns org tables.
+
   (straight-use-package 'valign)
   (add-hooks! '(org-mode-hook
                 markdown-mode-hook)
               #'valign-mode)
+#+end_src
+
+** Version Control
+
+#+begin_src emacs-lisp
+  ;; Diff-hl highlights uncommitted changes in the gutter.
+
+  (with-eval-after-load 'vc
+    (straight-use-package 'diff-hl)
+    (global-diff-hl-mode +1)
+    (diff-hl-flydiff-mode +1))
+
+  ;; Magit is a git porcelain inside Emacs.
+
+  (straight-use-package 'magit)
+  (general-define-key
+   :keymaps 'ctl-x-map
+   "g" 'magit-status
+   "M-g" 'magit-dispatch)
 #+end_src
 
 * UI | 用戶界面
@@ -604,6 +609,8 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
 #+end_src
 
 *** Theme Hooks
+
+The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
 
 #+begin_src emacs-lisp
   (defvar after-enable-theme-hook nil
