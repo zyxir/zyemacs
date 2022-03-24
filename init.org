@@ -52,17 +52,21 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
               (time-subtract after-init-time before-init-time)))))
 #+end_src
 
-** Adjust GC
+** Speed Up Startup
 
-Prohibit GC at startup, and adjust the threshold thereafter.
+Adjust GC and ~file-name-handler-alist~ during startup, to speed up initialisation.
 
 #+begin_src emacs-lisp
   (setq gc-cons-threshold most-positive-fixnum
-        gc-cons-percentage 0.5)
+        gc-cons-percentage 0.5
+        --fnha-- file-name-handler-alist
+        file-name-handler-alist nil)
   (add-hook 'emacs-startup-hook
             (lambda ()
               (setq gc-cons-threshold (* 32 1024 1024)
-                    gc-cons-percentage 0.1)))
+                    gc-cons-percentage 0.1
+                    file-name-handler-alist (append file-name-handler-alist
+                                                    --fnha--))))
 #+end_src
 
 ** Definitions
