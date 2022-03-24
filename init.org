@@ -65,70 +65,6 @@ Prohibit GC at startup, and adjust the threshold thereafter.
                     gc-cons-percentage 0.1)))
 #+end_src
 
-** My Macros
-
-*** Logical Macros
-
-#+begin_src emacs-lisp
-  (defmacro nor! (&rest conditions)
-    `(not (or ,@conditions)))
-  (defmacro nand! (&rest conditions)
-    `(not (and ,@conditions)))
-#+end_src
-
-*** Hook Macros
-
-#+begin_src emacs-lisp
-  (defmacro add-hooks! (hook-list function &optional depth local)
-    "Add FUNCTION to each hook in HOOK-LIST."
-    (let ((result '(progn))
-          (hook-list (cadr hook-list)))
-      (dolist (hook hook-list)
-        (add-to-list
-         'result
-         `(add-hook ',hook ,function ,depth ,local)
-         'append))
-      result))
-
-  (defmacro add-hook-lambda! (hook &rest body)
-    "Add a lambda function of BODY to the value of HOOK."
-    (declare (indent 1) (debug (form def-body)))
-    `(add-hook ,hook (lambda () ,@body)))
-
-  (defmacro add-hooks-lambda! (hook-list &rest body)
-    "Add a lambda function of BODY to each hook in HOOK-LIST."
-    (declare (indent 1) (debug (form def-body)))
-    (let ((result '(progn))
-          (hook-list (cadr hook-list)))
-      (dolist (hook hook-list)
-        (add-to-list
-         'result
-         `(add-hook ',hook (lambda () ,@body))
-         'append))
-      result))
-#+end_src
-
-Examples of these macros:
-
-#+begin_src emacs-lisp :tangle no
-  (add-hooks! '(some-hook another-hook) #'some-function)
-  (add-hook-lambda! 'some-hook
-    (do-something)
-    (do-something-else))
-  (add-hooks-lambda! '(some-hook another-hook)
-    (do-something)
-    (do-something-else))
-#+end_src
-
-*** Configuration Groupers
-
-#+begin_src emacs-lisp
-  (defmacro run-with-idle-timer! (secs &rest body)
-    "Run BODY after being idle for SECS seconds."
-    (declare (indent 1) (debug (form def-body)))
-    `(run-with-idle-timer ,secs nil (lambda () ,@body)))
-#+end_src
-
 ** Definitions
 
 Personal information and top-level definitions.
@@ -249,17 +185,25 @@ Manage package with straight.
     ;; Bootstrap straight.el
     (defvar bootstrap-version)
     (let ((bootstrap-file
-	   (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-	  (bootstrap-version 5))
+           (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+          (bootstrap-version 5))
       (unless (file-exists-p bootstrap-file)
-	(with-current-buffer
-	    (url-retrieve-synchronously
-	     "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-	     'silent 'inhibit-cookies)
-	  (goto-char (point-max))
-	  (eval-print-last-sexp)))
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+             'silent 'inhibit-cookies)
+          (goto-char (point-max))
+          (eval-print-last-sexp)))
       (load bootstrap-file nil 'nomessage)))
   (setq straight-vc-git-default-clone-depth 1)
+
+  (defmacro zy-pkg! (pkg &rest args)
+    "Install PKG with the default package manager of ZyEmacs.
+
+  Optionally, pass ARGS to the package manager.
+
+  Currently, the default package manager is straight.el."
+    `(straight-use-package ,pkg ,@args))
 #+end_src
 
 ** Key-Binding
@@ -269,7 +213,7 @@ Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The
 #+begin_src emacs-lisp
   ;; Setup general.
 
-  (straight-use-package 'general)
+  (zy-pkg! 'general)
 
   ;; Setup leader key.
 
@@ -291,7 +235,7 @@ Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The
 
   ;; Setup which-key.
 
-  (straight-use-package 'which-key)
+  (zy-pkg! 'which-key)
   (which-key-mode +1)
 #+end_src
 
@@ -301,21 +245,21 @@ Setup Vertico and other tools.
 
 #+begin_src emacs-lisp
   ;; Setup Vertico.
-  (straight-use-package 'vertico)
+  (zy-pkg! 'vertico)
   (vertico-mode +1)
 
   ;; Setup Orderless.
-  (straight-use-package 'orderless)
+  (zy-pkg! 'orderless)
   (setq completion-styles '(orderless partial-completion)
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion))))
 
   ;; Setup Savehist.
-  (straight-use-package 'savehist)
+  (zy-pkg! 'savehist)
   (savehist-mode +1)
 
   ;; Setup Marginalia.
-  (straight-use-package 'marginalia)
+  (zy-pkg! 'marginalia)
   (marginalia-mode +1)
 
   ;; Other minibuffer settings.
@@ -326,7 +270,7 @@ Setup Vertico and other tools.
 
   ;; Consult provides a bunch of useful commands.
 
-  (straight-use-package 'consult)
+  (zy-pkg! 'consult)
   (setq completion-in-region-function
         #'consult-completion-in-region)
   (advice-add #'completing-read-multiple
@@ -486,7 +430,7 @@ Zybox is the collection of my personal files.
    use-dialog-box nil
    word-wrap-by-category t)
 
-  (add-hook-lambda! 'after-init-hook
+  (add-hook! 'after-init-hook
     (delete-selection-mode +1)
     (global-display-line-numbers-mode +1)
     (global-subword-mode +1)
@@ -494,10 +438,11 @@ Zybox is the collection of my personal files.
     (save-place-mode +1)
     (load "kinsoku" 'noerror 'nomessage))
 
-  (add-hooks-lambda! '(prog-mode-hook text-mode-hook)
-    (setq-local show-trailing-whitespace t)
-    (hl-line-mode +1)
-    (auto-revert-mode +1))
+  (dolist (hook '(prog-mode-hook text-mode-hook))
+    (add-hook! hook
+      (setq-local show-trailing-whitespace t)
+      (hl-line-mode +1)
+      (auto-revert-mode +1)))
 #+end_src
 
 ** Restart-Emacs
@@ -507,10 +452,11 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
 [2022-03-20 Sun] ~restart-emacs-start-new-emacs~ does not receive prefix arguments, so switch it to a working fork.
 
 #+begin_src emacs-lisp
-  (straight-use-package '(restart-emacs
-                          :type git :host github
-                          :repo "wyuenho/restart-emacs"
-                          :branch "patch-1"))
+  (zy-pkg! '(restart-emacs
+             :type git
+             :host github
+             :repo "wyuenho/restart-emacs"
+             :branch "patch-1"))
 
   (defun zy/tangle-config-and-start-new-emacs ()
     "Tangle the config file and start a new instance of Emacs.
@@ -536,7 +482,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
 ** Super Save
 
 #+begin_src emacs-lisp
-  (straight-use-package 'super-save)
+  (zy-pkg! 'super-save)
   (setq super-save-auto-save-when-idle t)
   (super-save-mode +1)
 #+end_src
@@ -546,10 +492,10 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
 #+begin_src emacs-lisp
   ;; Valign visually aligns org tables.
 
-  (straight-use-package 'valign)
-  (add-hooks! '(org-mode-hook
-                markdown-mode-hook)
-              #'valign-mode)
+  (zy-pkg! 'valign)
+  (dolist (hook '(org-mode-hook
+                  markdown-mode-hook))
+    (add-hook hook #'valign-mode))
 #+end_src
 
 ** Version Control
@@ -558,13 +504,13 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
   ;; Diff-hl highlights uncommitted changes in the gutter.
 
   (with-eval-after-load 'vc
-    (straight-use-package 'diff-hl)
+    (zy-pkg! 'diff-hl)
     (global-diff-hl-mode +1)
     (diff-hl-flydiff-mode +1))
 
   ;; Magit is a git porcelain inside Emacs.
 
-  (straight-use-package 'magit)
+  (zy-pkg! 'magit)
   (general-define-key
    :keymaps 'ctl-x-map
    "g" 'magit-status
@@ -591,7 +537,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     "Default function to setup theme."
     (if (display-graphic-p)
         (progn
-          (straight-use-package 'spacemacs-theme)
+          (zy-pkg! 'spacemacs-theme)
           (require 'spacemacs-common)
           (load-theme 'spacemacs-light t))
       (load-theme 'wombat t)))
@@ -609,7 +555,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     :group 'zyemacs)
 
   (when zy$use-solaire-p
-    (straight-use-package 'solaire-mode)
+    (zy-pkg! 'solaire-mode)
     (solaire-global-mode +1))
 #+end_src
 
@@ -775,20 +721,20 @@ With which the fonts are customised below:
 
   (add-to-list 'after-make-frame-functions
                #'zy/resize-frame)
-  (add-hook-lambda! 'emacs-startup-hook
+  (add-hook! 'emacs-startup-hook
     (zy/resize-frame nil 'no-rem))
 #+end_src
 
 ** Distraction-Free Mode
 
 #+begin_src emacs-lisp
-  (straight-use-package 'darkroom)
+  (zy-pkg! 'darkroom)
   (setq darkroom-margins 0.1
         darkroom-text-scale-increase 1)
   (general-define-key
    :keymaps 'zy-leader-manage-map
    "d" #'darkroom-mode)
-  (add-hook-lambda! 'darkroom-mode-hook
+  (add-hook! 'darkroom-mode-hook
     (let ((inhibit-message t))
       (delete-other-windows))
     (hl-line-mode 'toggle))
@@ -818,8 +764,9 @@ With which the fonts are customised below:
                          darkroom-mode
                          (equal width-cur zy$frame-width-standard)
                          (equal height-cur zy$frame-height-standard)))
-               (d2s (and (nand! (boundp 'darkroom-mode)
-                                darkroom-mode)
+               (d2s (and (not
+                          (and (boundp 'darkroom-mode)
+                               darkroom-mode))
                          (equal width-cur zy$frame-width-darkroom)
                          (equal height-cur zy$frame-height-darkroom))))
           (cond
@@ -860,7 +807,7 @@ With which the fonts are customised below:
 
   ;; Hide minor modes that I don't care.
 
-  (straight-use-package 'dim)
+  (zy-pkg! 'dim)
   (dim-minor-names '((buffer-face-mode nil face-remap)
                      (eldoc-mode nil eldoc)
                      (org-indent-mode nil org-indent)
@@ -885,7 +832,7 @@ Make everything UTF-8.
 ** Rime Input Method
 
 #+begin_src emacs-lisp
-  (straight-use-package 'rime)
+  (zy-pkg! 'rime)
   (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
         default-input-method "rime"
         rime-show-candidate 'posframe)
@@ -910,20 +857,20 @@ Make everything UTF-8.
 ** Emacs Lisp
 
 #+begin_src emacs-lisp
-  (add-hook-lambda! 'emacs-lisp-mode-hook
+  (add-hook! 'emacs-lisp-mode-hook
     (setq-local fill-column 70))
 #+end_src
 
 ** Markdown
 
 #+begin_src emacs-lisp
-  (straight-use-package 'markdown-mode)
+  (zy-pkg! 'markdown-mode)
   (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
   (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
   (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
 
   (with-eval-after-load 'markdown-mode
-    (straight-use-package 'markdown-toc))
+    (zy-pkg! 'markdown-toc))
 #+end_src
 
 ** Org
@@ -936,12 +883,12 @@ Make everything UTF-8.
     :type 'boolean
     :group 'zyemacs)
 
-  (straight-use-package '(org :type git :host github
-                              :repo "bzg/org-mode"))
+  (zy-pkg! '(org :type git :host github
+                 :repo "bzg/org-mode"))
   (setq org-attach-id-dir "_org-att"
         org-src-window-setup 'current-window
         org-tags-column 0)
-  (add-hook-lambda! 'org-mode-hook
+  (add-hook! 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
     (when zy$use-variable-pitch-p
@@ -1066,7 +1013,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
 *** Org-Appear
 
 #+begin_src emacs-lisp
-  (straight-use-package 'org-appear)
+  (zy-pkg! 'org-appear)
   (add-hook 'org-mode-hook 'org-appear-mode)
   (setq-default org-hide-emphasis-markers t)
 #+end_src
@@ -1074,7 +1021,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
 *** Org-Superstar
 
 #+begin_src emacs-lisp
-  (straight-use-package 'org-superstar)
+  (zy-pkg! 'org-superstar)
   (add-hook 'org-mode-hook 'org-superstar-mode)
   (setq org-superstar-headline-bullets-list '(#x25c9
                                               #x25cb
@@ -1098,7 +1045,7 @@ Enable the GTD system when ~zy$gtd-path~ is valid.
 *** Org-Journal
 
 #+begin_src emacs-lisp
-  (straight-use-package 'org-journal)
+  (zy-pkg! 'org-journal)
   (general-define-key
    :keymaps 'zy-leader-map
    "g" 'calendar
@@ -1140,15 +1087,15 @@ Load org-roam when ~org-roam-directory~ is valid.
     (setq zy$use-org-roam-p nil))
 
   (when zy$use-org-roam-p
-    (straight-use-package 'org-roam))
+    (zy-pkg! 'org-roam))
 #+end_src
 
 ** PDF
 
 #+begin_src emacs-lisp
-  (straight-use-package 'pdf-tools)
+  (zy-pkg! 'pdf-tools)
   (pdf-loader-install)
-  (add-hook-lambda! 'pdf-view-mode-hook
+  (add-hook! 'pdf-view-mode-hook
     (display-line-numbers-mode -1)
     (auto-revert-mode -1))
 #+end_src
@@ -1156,5 +1103,5 @@ Load org-roam when ~org-roam-directory~ is valid.
 ** Verilog
 
 #+begin_src emacs-lisp
-  (straight-use-package 'verilog-mode)
+  (zy-pkg! 'verilog-mode)
 #+end_src
