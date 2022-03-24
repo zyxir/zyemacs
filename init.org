@@ -131,7 +131,12 @@ Examples of these macros:
 
 ** Definitions
 
+Personal information and top-level definitions.
+
 #+begin_src emacs-lisp
+  (setq user-full-name "Eric Zhuo Chen"
+        user-mail-address "zyxirchen@outlook.com")
+
   (defgroup zyemacs nil
     "ZyEmacs customisation options."
     :group 'emacs)
