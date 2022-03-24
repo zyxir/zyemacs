@@ -483,7 +483,6 @@ Zybox is the collection of my personal files.
 
   (add-hook-lambda! 'after-init-hook
     (delete-selection-mode +1)
-    (global-auto-revert-mode +1)
     (global-display-line-numbers-mode +1)
     (global-subword-mode +1)
     (recentf-mode +1)
@@ -492,7 +491,8 @@ Zybox is the collection of my personal files.
 
   (add-hooks-lambda! '(prog-mode-hook text-mode-hook)
     (setq-local show-trailing-whitespace t)
-    (hl-line-mode +1))
+    (hl-line-mode +1)
+    (auto-revert-mode +1))
 #+end_src
 
 ** Restart-Emacs
@@ -909,6 +909,18 @@ Make everything UTF-8.
     (setq-local fill-column 70))
 #+end_src
 
+** Markdown
+
+#+begin_src emacs-lisp
+  (straight-use-package 'markdown-mode)
+  (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+  (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+  (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
+
+  (with-eval-after-load 'markdown-mode
+    (straight-use-package 'markdown-toc))
+#+end_src
+
 ** Org
 
 *** Basic Org
@@ -1126,16 +1138,14 @@ Load org-roam when ~org-roam-directory~ is valid.
     (straight-use-package 'org-roam))
 #+end_src
 
-** Markdown
+** PDF
 
 #+begin_src emacs-lisp
-  (straight-use-package 'markdown-mode)
-  (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
-  (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-  (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
-
-  (with-eval-after-load 'markdown-mode
-    (straight-use-package 'markdown-toc))
+  (straight-use-package 'pdf-tools)
+  (pdf-loader-install)
+  (add-hook-lambda! 'pdf-view-mode-hook
+    (display-line-numbers-mode -1)
+    (auto-revert-mode -1))
 #+end_src
 
 ** Verilog
