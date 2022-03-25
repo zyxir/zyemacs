@@ -596,75 +596,68 @@ The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
 With which the fonts are customized below:
 
 #+begin_src emacs-lisp
-  (defcustom zy$-font-mono (zf-pick-font
-                            "Sarasa Mono Slab TC"
-                            "Iosevka Term Slab"
-                            "Consolas"
-                            "monospace")
-    "Monospace font. Used on most occasions."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-mono-cjk (zf-pick-font
-                               "GenYoGothic TW"
-                               "Sarasa Mono Slab TC"
-                               "Microsoft YaHei"
-                               "monospace")
-    "Monospace font for CJK characters and punctuations."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-sans (zf-pick-font
-                           "Roboto Slab"
-                           "Noto Sans"
-                           "Calibri"
-                           "sans-serif")
-    "Sans-serif font. Used occasionally."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-sans-cjk (zf-pick-font
-                               "GenYoGothic TW"
-                               "Sarasa Mono Slab TC"
-                               "Microsoft YaHei"
-                               "sans-serif")
-    "Sans-serif font for CJK characters and punctuations."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-serif (zf-pick-font
-                            "IBM Plex Serif"
-                            "Noto Serif"
-                            "Times New Roman"
-                            "serif")
-    "Serif font. Used occasionally."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-serif-cjk (zf-pick-font
-                                "GenYoMin TW"
-                                "Noto Serif CJK TC"
-                                "STSong"
-                                "serif")
-    "Serif font for CJK characters and punctuations."
-    :type 'sexp
-    :group 'zyemacs)
-
-  (defcustom zy$-font-size 16
-    "Default font size for the UI."
-    :type 'integer
-    :group 'zyemacs)
-
-  (defcustom zy$-font-size-vp 18
-    "Default font size for the 'variable-pitch' face."
-    :type 'integer
-    :group 'zyemacs)
-
   (defun zy-setup-font ()
     "Setup font settings.
 
   Does nothing in a terminal environment."
     (when (display-graphic-p)
+      (defcustom zy$-font-mono (zf-pick-font
+                                "Sarasa Mono Slab TC"
+                                "Iosevka Term Slab"
+                                "Consolas"
+                                "monospace")
+        "Monospace font. Used on most occasions."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-mono-cjk (zf-pick-font
+                                    "GenYoGothic TW"
+                                    "Sarasa Mono Slab TC"
+                                    "Microsoft YaHei"
+                                    "monospace")
+        "Monospace font for CJK characters and punctuations."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-sans (zf-pick-font
+                                "Roboto Slab"
+                                "Noto Sans"
+                                "Calibri"
+                                "sans-serif")
+        "Sans-serif font. Used occasionally."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-sans-cjk (zf-pick-font
+                                    "GenYoGothic TW"
+                                    "Sarasa Mono Slab TC"
+                                    "Microsoft YaHei"
+                                    "sans-serif")
+        "Sans-serif font for CJK characters and punctuations."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-serif (zf-pick-font
+                                 "IBM Plex Serif"
+                                 "Noto Serif"
+                                 "Times New Roman"
+                                 "serif")
+        "Serif font. Used occasionally."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-serif-cjk (zf-pick-font
+                                     "GenYoMin TW"
+                                     "Noto Serif CJK TC"
+                                     "STSong"
+                                     "serif")
+        "Serif font for CJK characters and punctuations."
+        :type 'sexp
+        :group 'zyemacs)
+      (defcustom zy$-font-size 16
+        "Default font size for the UI."
+        :type 'integer
+        :group 'zyemacs)
+      (defcustom zy$-font-size-vp 18
+        "Default font size for the 'variable-pitch' face."
+        :type 'integer
+        :group 'zyemacs)
+
       ;; Set monospace font as default.
       (zf-set-font zy$-font-mono zy$-font-size zy$-font-mono-cjk
                    'default)
