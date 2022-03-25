@@ -237,6 +237,11 @@ Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The
   (general-define-key zy$-leader-key 'zy-leader-map
                       "M-z" 'back-to-indentation)
 
+  ;; Disable C-z for GUI.
+
+  (when (display-graphic-p)
+    (general-define-key "C-z" nil))
+
   ;; Setup other prefix commands.
 
   (define-prefix-command 'zy-leader-manage-map)
