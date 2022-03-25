@@ -426,7 +426,6 @@ Zybox is the collection of my personal files.
   (setq
    auto-save-default nil
    disabled-command-function nil
-   fill-column 80
    frame-title-format (if zy-*windows*
                           '("" "windows-emacs" " [%b]")
                         '("" "emacs" " [%b]"))
@@ -441,6 +440,8 @@ Zybox is the collection of my personal files.
    system-time-locale "C"
    use-dialog-box nil
    word-wrap-by-category t)
+
+  (setq-default fill-column 80)
 
   (add-hook! 'after-init-hook
     (delete-selection-mode +1)
