@@ -819,7 +819,8 @@ With which the fonts are customized below:
   ;; Hide minor modes that I don't care.
 
   (zy-pkg! 'dim)
-  (dim-minor-names '((buffer-face-mode nil face-remap)
+  (dim-minor-names '((auto-revert-mode nil autorevert)
+                     (buffer-face-mode nil face-remap)
                      (eldoc-mode nil eldoc)
                      (org-indent-mode nil org-indent)
                      (org-src-mode nil org-src)
