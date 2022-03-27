@@ -8,9 +8,19 @@
 (defun zb-setup-benchmark ()
   "Setup the ':benchmark' keyword."
   (defvar zb-benchmark-result nil
-    "Result of benchmarking, with each element being a (NAME . TIME)
-pair, where NAME is the zy-block name, and TIME is the time used
-to execute it."))
+    "Result of benchmarking, with each element being a (NAME TIME
+TIME-SINCE) pair, where NAME is the zy-block name, TIME is the
+time used to execute it, and TIME-SINCE is the time since the
+initialization started."))
+
+(defmacro zb-wrapper-benchmark--time-since (time)
+  "Return the time elapsed since TIME.
+
+The result is in milliseconds, and is a string."
+  `(format
+    "%.2f"
+    (* 1000
+       (float-time (time-since ,time)))))
 
 (defun zb-wrapper-benchmark (name arg body)
   "Wrap BODY with benchmarking code if ARG is non-nil.
@@ -19,16 +29,16 @@ The code append (NAME . TIME) to `zb-benchmark-result', where
 TIME is the time used to execute the body."
   (if arg
       `((let ((--time-start-- (current-time))
-	      --time-elapsed--
-	      --name-time-pair--)
+	      --result--)
 	  ,@body
-	  (setq --time-elapsed--
-		(float-time (time-since --time-start--)))
-	  (add-to-list '--name-time-pair-- --time-elapsed--)
-	  (add-to-list '--name-time-pair-- ',name)
-	  (add-to-list 'zb-benchmark-result
-		       --name-time-pair--
-		       'append)))
+	  (add-to-list '--result--
+		       (zb-wrapper-benchmark--time-since
+			before-init-time))
+	  (add-to-list '--result--
+		       (zb-wrapper-benchmark--time-since
+			--time-start--))
+	  (add-to-list '--result-- ',name)
+	  (add-to-list 'zb-benchmark-result --result-- 'append)))
     body))
 
 

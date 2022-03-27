@@ -25,6 +25,7 @@ they are not explicitly given. However, if a global flag is
 explicitly given, the given value will be used instead of the
 default value.")
 
+;;;###autoload
 (defun zb-define-keyword (keyword type func &optional fsetup)
   "Define a new keyword KEYWORD for zy-block.
 
