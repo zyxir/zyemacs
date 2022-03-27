@@ -155,7 +155,7 @@ Load the custom file, populate ~load-path~, and deal with autoloads.
 I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a simpler version of ~use-package~ or ~leaf~, but with my own custom feature set. See ~lisp/zy-block.el~ and ~lisp/zy-block-keywords.el~ for its implementation.
 
 #+begin_src emacs-lisp
-  (zb-setup)
+  (load (expand-file-name "lisp/zy-block" user-emacs-directory))
   (setq zb-global-flag-alist
         '((:provide . t)
           (:protect . t)))

@@ -23,7 +23,7 @@ The result is in milliseconds, and is a string."
     (* 1000
        (float-time (time-since ,time)))))
 
-(defun zb-wrapper-benchmark (name arg body)
+(defun zbch-zb-wrapper (name arg body)
   "Wrap BODY with benchmarking code if ARG is non-nil.
 
 The code append (NAME . TIME) to `zb-benchmark-result', where
@@ -44,7 +44,7 @@ TIME is the time used to execute the body."
 		       'append)))
     body))
 
-(zb-define-keyword ':benchmark 'flag #'zb-wrapper-benchmark
+(zb-define-keyword ':benchmark 'flag #'zbch-zb-wrapper
 		   :after ':provide)
 
 
