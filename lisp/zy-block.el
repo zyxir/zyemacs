@@ -1,6 +1,6 @@
 ;;; zy-block.el --- configurable code blocks.
 
-(require 'cl-lib)
+(require 'zy-lisp)
 
 
 ;; Keyword management.
@@ -26,7 +26,7 @@ explicitly given, the given value will be used instead of the
 default value.")
 
 ;;;###autoload
-(defun zb-define-keyword (keyword type func &optional fsetup)
+(defun zb-define-keyword (keyword type func &rest args)
   "Define a new keyword KEYWORD for zy-block.
 
 KEYWORD is the keyword, which is a symbol starts with the
@@ -49,16 +49,16 @@ globally enabled by adding them and their default values to
 
 FUNC is the wrapper function for the keyword.
 
-Optionally, if function FSETUP is non-nil, run the function to
-setup the keyword."
-  (cl-pushnew keyword zb-keyword-list)
+KEYWORD are added to corresponding lists via the function
+`zl-list-insert'. Optional ARGS can be provided, to control the
+behavior of `zl-list-insert'."
+  (apply #'zl-list-insert keyword 'zb-keyword-list args)
   (when (equal type 'flag)
-    (cl-pushnew keyword zb-flag-list))
+    (apply #'zl-list-insert keyword 'zb-flag-list args))
   (setq zb-keyword-type-plist
 	(plist-put zb-keyword-type-plist keyword type)
 	zb-keyword-func-plist
 	(plist-put zb-keyword-func-plist keyword func))
-  (when fsetup (funcall fsetup))
   keyword)
 
 (defun zb-keyword-p (sexp)

@@ -167,6 +167,7 @@ I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a sim
   (add-to-list 'command-switch-alist
                '("--zy-benchmark" . zy-do-nothing))
   (when (member "--zy-benchmark" command-line-args)
+    (require 'zy-benchmark)
     (push '(:benchmark . t) zb-global-flag-alist))
 #+end_src
 

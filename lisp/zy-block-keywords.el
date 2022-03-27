@@ -1,45 +1,6 @@
-;;; zy-block-keywords.el --- keywords definition for zy-blocks.
+;;; zy-block-keywords.el --- basic keywords for zy-blocks.
 
 (require 'zy-block)
-
-
-;; Benchmark.
-
-(defun zb-setup-benchmark ()
-  "Setup the ':benchmark' keyword."
-  (defvar zb-benchmark-result nil
-    "Result of benchmarking, with each element being a (NAME TIME
-TIME-SINCE) pair, where NAME is the zy-block name, TIME is the
-time used to execute it, and TIME-SINCE is the time since the
-initialization started."))
-
-(defmacro zb-wrapper-benchmark--time-since (time)
-  "Return the time elapsed since TIME.
-
-The result is in milliseconds, and is a string."
-  `(format
-    "%.2f"
-    (* 1000
-       (float-time (time-since ,time)))))
-
-(defun zb-wrapper-benchmark (name arg body)
-  "Wrap BODY with benchmarking code if ARG is non-nil.
-
-The code append (NAME . TIME) to `zb-benchmark-result', where
-TIME is the time used to execute the body."
-  (if arg
-      `((let ((--time-start-- (current-time))
-	      --result--)
-	  ,@body
-	  (add-to-list '--result--
-		       (zb-wrapper-benchmark--time-since
-			before-init-time))
-	  (add-to-list '--result--
-		       (zb-wrapper-benchmark--time-since
-			--time-start--))
-	  (add-to-list '--result-- ',name)
-	  (add-to-list 'zb-benchmark-result --result-- 'append)))
-    body))
 
 
 ;; Protect.
@@ -145,8 +106,6 @@ ARG is a package recipe, or a list of recipes."
   ;; Setup flag keywords in order: the early a flag keyword is
   ;; defined, the outer it will be wrapped.
   (zb-define-keyword ':protect 'flag #'zb-wrapper-protect)
-  (zb-define-keyword ':benchmark 'flag #'zb-wrapper-benchmark
-		     #'zb-setup-benchmark)
   (zb-define-keyword ':provide 'flag #'zb-wrapper-provide)
   ;; Setup non-flag keywords. The order is not important here.
   (zb-define-keyword ':when 'single #'zb-wrapper-when)
@@ -154,3 +113,8 @@ ARG is a package recipe, or a list of recipes."
   (zb-define-keyword ':after-load 'single #'zb-wrapper-after-load)
   (zb-define-keyword ':idle 'single #'zb-wrapper-idle)
   (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg))
+
+
+(provide 'zy-block-keywords)
+
+;;; end of zy-block-keywords.el
