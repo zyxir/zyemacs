@@ -11,189 +11,229 @@
 (defvar zb-keyword-type-plist nil
   "List of keywords and their types for zy-block.")
 
-(defvar zb-flag-list nil
-  "List of flag keywords for zy-block.")
-
-(defvar zb-flag-default-plist nil
-  "List of default values for flag keywords of zy-block.")
-
 (defvar zb-keyword-func-plist nil
   "List of keywords and their wrapper cuntions for zy-block.")
 
-;;;###autoload
-(defun zb-define-keyword (keyword type func)
-  "Define a new keyword for zy-block.
+(defvar zb-flag-list nil
+  "List of all flag keywords for zy-block.")
 
-KEYWORD is the keyword, and TYPE decides what type of arguments
-the keyword should receive:
+(defvar zb-global-flag-alist nil
+  "Alist of globally enabled flags and their default values.
 
-- 'single'	a single expression.
-- 'multiple'	multiple expressions.
+These flag keywords will be enabled for every zy-blocks, even if
+they are not explicitly given. However, if a global flag is
+explicitly given, the given value will be used instead of the
+default value.")
 
-FUNC is the wrapper function for the keyword."
+(defun zb-define-keyword (keyword type func &optional fsetup)
+  "Define a new keyword KEYWORD for zy-block.
+
+KEYWORD is the keyword, which is a symbol starts with the
+comma (:) sign, like ':when' or ':pkg'.
+
+TYPE is the type of the keyword, determing the way `zb' parses
+its argument. Possible types are:
+
+'single' -- the keyword reads a single s-expression as its
+argument.
+
+'multiple' -- the keyword reads multiple s-expressions, which are
+then stored in a list to form its argument.
+
+'flag' -- the keyword is a flag that reads zero or one
+s-expression as its argument. If no s-expression is given, its
+argument would be 't'. Additionally, flag keywords can be
+globally enabled by adding them and their default values to
+`zb-global-flag-alist'.
+
+FUNC is the wrapper function for the keyword.
+
+Optionally, if function FSETUP is non-nil, run the function to
+setup the keyword."
   (cl-pushnew keyword zb-keyword-list)
+  (when (equal type 'flag)
+    (cl-pushnew keyword zb-flag-list))
   (setq zb-keyword-type-plist
-	(plist-put zb-keyword-type-plist keyword type))
-  (setq zb-keyword-func-plist
+	(plist-put zb-keyword-type-plist keyword type)
+	zb-keyword-func-plist
 	(plist-put zb-keyword-func-plist keyword func))
+  (when fsetup (funcall fsetup))
   keyword)
 
-(defun zb-define-flag (flag default func)
-  "Define a new flag keyword for zy-block.
+(defun zb-keyword-p (sexp)
+  "Determine if SEXP is a valid keyword.
 
-FLAG is the flag keyword, and DEFAULT is its default value.
+If it is, return its type. Otherwise, return nil.
 
-FUNC is the wrapper function for the flag keyword."
-  (cl-pushnew flag zb-flag-list)
-  (setq zb-flag-default-plist
-	(plist-put zb-flag-default-plist flag default))
-  (setq zb-keyword-func-plist
-	(plist-put zb-keyword-func-plist flag func))
-  flag)
+Additionally, if SEXP is '--eol--', which is used by zb-parse to
+indicate the end of the parsed list, the function will return
+itself."
+  (if (equal sexp '--eol--)
+      sexp
+    (when (and (symbolp sexp)
+	       (equal (substring (symbol-name sexp) 0 1) ":")
+	       (member sexp zb-keyword-list))
+      (plist-get zb-keyword-type-plist sexp))))
+
+
+;; Debugging utilities.
+
+(defun zb-warn (name level message &rest args)
+  "Display a zy-block warning message.
+
+NAME is the name of the current zy-block name.
+
+All other arguments correspond to those of `lwarn'."
+  (apply #'lwarn
+	 (format "zb %s" name)
+	 level
+	 message
+	 args))
 
 
 ;; Keyword parsing.
 
-(defun zb-parse--keyword-p (sexp)
-  "Determine if SEXP is a keyword.
+(defun zb-parse (name body)
+  "Parse BODY, return two plists (KPLIST FPLIST).
 
-If it is a valid flag keyword, return 'flag'.
+The first plist KPLIST is of non-flag keywords and their
+arguments. If there are objects that do not belong to any
+keyword, they will be stored with the keyword 'nil'.
 
-If it is a valid keyword, return its type.
+The second plist FPLIST is of flag keywords and their arguments.
 
-If it is '--zb-eol--', return itself.
-
-Otherwise, return 'nil'."
-  (if (equal sexp '--zb-eol--)
-      sexp
-    (when (and (symbolp sexp)
-	       (equal (substring (symbol-name sexp) 0 1) ":"))
-      (if (member sexp zb-flag-list)
-	  'flag
-	(when (member sexp zb-keyword-list)
-	  (plist-get zb-keyword-type-plist sexp))))))
-
-(defun zb-parse (body)
-  "Parse BODY, return a list of keywords and arguments.
-
-For a 'single' typed keyword, only one argument will be parsed;
-for a 'multiple' typed keyword, all argument will be parsed until
-the next keyword, or the end of BODY, and the arguments will be
-placed inside a list. For a flag keyword, zero or one argument
-will be parsed.
-
-If there are objects that do not belong to any keyword, they will
-be stored with the key 'nil'."
-  (let* (newobj				; new object to parse
-	 newkwp				; (zb-parse--keyword-p newobj)
+NAME is just used for proper warning display."
+  (let* (kplist				; plist of non-flags
+	 fplist				; plist of flags
+	 (body
+	  (append body '(--eol--)))	; append '--eol--' to body
 	 curkey				; current keyword
-	 curkwp				; (zb-parse--keyword-p curkwp)
+	 curkwp				; (zb-keyword-p curkey)
 	 curarg				; current argument
-	 result				; the result list
-	 (body (append body '(--zb-eol--))))
-    ;; '--zb-eol--' means the end of the list.
+	 newobj				; new object to parse
+	 newkwp				; (zb-keyword-p newobj)
+	 (kwcnt 0))			; keyword counter
     (while body
+      ;; Get a new sexp to parse.
       (setq newobj (car body)
-	    newkwp (zb-parse--keyword-p newobj))
+	    newkwp (zb-keyword-p newobj)
+	    body (cdr body))
+      ;; Parsing argument based on the current keyword.
       (cond
-       ;; No keyword is active.
-       ((not curkwp)
-	(if newkwp
-	    ;; Save non-argument sexps and start parsing the next
-	    ;; keyword.
-	    (progn
-	      (when curarg
-		(push (nreverse curarg) result)
-		(push nil result))
-	      (setq curkey newobj
-		    curkwp newkwp
-		    curarg nil))
-	  ;; Collect non-argument sexp.
-	  (push newobj curarg)))
-       ;; A flag keyword is active.
-       ((equal curkey 'flag)
-	(if newkwp
-	    ;; Use the default value for the flag and start parsing
-	    ;; the next keyword.
-	    (progn
-	      (push (plist-get zb-flag-default-plist
-			       curkey)
-		    result)
-	      (push curkey result)
-	      (setq curkey newobj
-		    curkwp newkwp
-		    curarg nil))
-	  ;; Use the value
-	  ))))))
+       ;; If there is no active keyword, but the new object is still
+       ;; not a keyword, collect the object as a free sexp.
+       ((and (not curkwp) (not newkwp))
+	(push newobj curarg))
+       ;; If there is no active keyword, and the new object is a valid
+       ;; keyword, store all free sexp.
+       ((and (not curkwp) newkwp)
+	(when curarg
+	  (push (nreverse curarg) kplist)
+	  (push nil kplist)))
+       ;; If there is an active 'multiple' typed keyword, and the new
+       ;; object is not a keyword, just collect the new object as ar
+       ;; part of its argument.
+       ((and (equal curkwp 'multiple) (not newkwp))
+	(push newobj curarg))
+       ;; If there is an active 'multiple' typed keyword, and the new
+       ;; object is an valid keyword, stop the parsing of the current
+       ;; keyword.
+       ((and (equal curkwp 'multiple) newkwp)
+	(push (nreverse curarg) kplist)
+	(push curkey kplist))
+       ;; If there is an active 'single' typed keyword, and the new
+       ;; object is not a keyword, store the object as its argument.
+       ((and (equal curkwp 'single) (not newkwp))
+	(push newobj kplist)
+	(push curkey kplist))
+       ;; If there is an active 'single' typed keyword, and the new
+       ;; object is an valid keyword, ignore the current keyword, and
+       ;; issue an warning, as no argument has been passed to the
+       ;; current keyword.
+       ((and (equal curkwp 'single) newkwp)
+	(zb-warn name :warning
+		 "%dth keyword %s ignored."
+		 kwcnt curkey))
+       ;; If there is an active 'flag' typed keyword, and the new
+       ;; object is not a keyword, store the object as its argument.
+       ((and (equal curkwp 'flag) (not newkwp))
+	(push newobj fplist)
+	(push curkey fplist))
+       ;; If there is an active 'flag' typed keyword, and the new
+       ;; object is a valid keyword, store the flag as 't'.
+       ((and (equal curkwp 'flag) newkwp)
+	(push t fplist)
+	(push curkey fplist))
+       ;; For other circumstances, only issue an warning.
+       (t
+	(zb-warn name :warning
+		 "unknown circumstance met at %dth keyword %s."
+		 kwcnt curkey)))
+      ;; Change the parsing state.
+      (if newkwp
+	  (setq curkey newobj
+		curkwp newkwp
+		curarg nil)
+	(when (or (equal curkwp 'single)
+		  (equal curkwp 'flag))
+	  (setq curkey nil
+		curkwp nil
+		curarg nil)))
+      ;; Increment keyword counter if necessary.
+      (when newkwp
+	(setq kwcnt (+ kwcnt 1))))
+    ;; Return the two parsed plists.
+    `(,kplist ,fplist)))
 
 
 ;; The `zb' macro.
 
-;;;###autoload
 (defmacro zb (name &rest body)
   "Define a block of code as a zy-block."
-  (declare (indent 1) (debug (form def-body)))
-  ;; Parse keywords.
-  ;; Apply keywords.
-  ;; Apply flag functions.
-  (dolist (flag zb-flag-list)
-    (let ((func (plist-get zb-keyword-func-plist flag)))
-      (when func
-	(setq body (funcall func name t body)))))
-  `(prog1 ',name ,@body))
+  (declare (indent 1))
+  (let* ((parse-result (zb-parse name body))
+	 (kplist (car parse-result))
+	 (fplist (cadr parse-result))
+	 keyword
+	 func
+	 arg
+	 body)
+    ;; Apply non-flag keyword functions.
+    (while kplist
+      (setq keyword (car kplist)
+	    arg (cadr kplist)
+	    kplist (cddr kplist)
+	    body
+	    (if keyword
+		(funcall (plist-get zb-keyword-func-plist
+				    keyword)
+			 name arg body)
+	      (append arg body))))
+    ;; Add global flag keywords.
+    (dolist (fd zb-global-flag-alist)
+      (let ((flag (car fd))
+	    (default (cdr fd)))
+	(when (not (member flag fplist))
+	  (push default fplist)
+	  (push flag fplist))))
+    ;; Apply flag keywords in order.
+    (dolist (flag zb-flag-list)
+      (when (member flag fplist)
+	(setq arg (plist-get fplist flag)
+	      body
+	      (funcall (plist-get zb-keyword-func-plist
+				  flag)
+		       name arg body))))
+    ;; Construct the final body.
+    (cond
+     ((symbolp body)
+      `(prog1 ',name ,body))
+     ((not (cdr body))
+      `(prog1 ',name ,(car body)))
+     (t
+      (append `(prog1 ',name) body)))))
 
 
-;; Benchmark.
+(provide 'zy-block)
 
-(defvar zb-benchmark-result nil
-  "Result of benchmarking, with each element being a (NAME . TIME)
-pair, where NAME is the zy-block name, and TIME is the time used
-to execute it.")
-
-;;;###autoload
-(defun zb-wrapper-benchmark (name arg body)
-  "Wrap BODY with benchmarking code if ARG is non-nil.
-
-The code append (NAME . TIME) to `zb-benchmark-result', where
-TIME is the time used to execute the body."
-  (if arg
-      `((let ((--time-start-- (current-time))
-	      --time-elapsed--
-	      --name-time-pair--)
-	  ,@body
-	  (setq --time-elapsed--
-		(float-time (time-since --time-start--)))
-	  (add-to-list '--name-time-pair-- --time-elapsed--)
-	  (add-to-list '--name-time-pair-- ',name)
-	  (add-to-list 'zb-benchmark-result
-		       --name-time-pair--
-		       'append)))
-    body))
-
-
-;; Protect.
-
-;;;###autoload
-(defun zb-wrapper-protect (name arg body)
-  "Wrap BODY with protecting code if ARG is non-nil.
-
-The code prevent any warning or error from stopping the whole
-configuration from executing. Warnings or errors issued inside
-BODY will be reported by the zy-block."
-  (if arg
-      `((condition-case --ex--
-	    ,(if (cdr body) (append '(progn) body) (car body))
-	  ('warning
-	   (lwarn 'zb :warning "In %s: %s" ',name --ex--))
-	  ('error
-	   (lwarn 'zb :error "In %s: %s" ',name --ex--))))
-    body))
-
-
-;; Keyword setup.
-
-;;;###autoload
-(defun zb-setup ()
-  "Setup the zy-block system."
-  (zb-define-flag ':protect t #'zb-wrapper-protect)
-  (zb-define-flag ':benchmark t #'zb-wrapper-benchmark))
+;;; end of zy-block.el
