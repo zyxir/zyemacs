@@ -184,19 +184,16 @@ Personal information and top-level definitions.
       "Should ZyEmacs use the workflow designed around Zybox.
 
   Zybox is private directory of Zyxir, and ZyEmacs has a set of
-  utilities to work with Zybox. If you are not Zyxir, the workflow
-  is meaningless.
+  utilities to work with Zybox. If you are not Zyxir, do not enable
+  this.
 
   If no valid path of Zybox is detected or set by the user, this
-  value will be automatically set to nil."
-      :type 'boolean
-      :group 'zyemacs)
+  value will be automatically set to nil.
 
-    (defcustom zy$-use-gtd-p t
-      "Should ZyEmacs use the built-in GTD system.
-
-  If `zy$-gtd-path' does not exist as a directory, this variable
-  will be automatically set to nil."
+  Additionally, features like GTD, org-journal and org-roam default
+  their file path to specific directories inside Zybox. If Zybox is
+  disabled, those features won't load unless another custom path is
+  set for them."
       :type 'boolean
       :group 'zyemacs))
 #+end_src
@@ -1100,6 +1097,11 @@ Change cursor color based on the current input method.
       (variable-pitch-mode +1))
     (visual-line-mode +1))
 
+  (zb init-org-appear
+    :pkg 'org-appear
+    (add-hook 'org-mode-hook 'org-appear-mode)
+    (setq-default org-hide-emphasis-markers t))
+
   (zb init-org-after-load
     :when (display-graphic-p)
     :after-load 'org
@@ -1138,18 +1140,24 @@ Change cursor color based on the current input method.
 Enable the GTD system when ~zy$-gtd-path~ is valid.
 
 #+begin_src emacs-lisp
-  (defcustom zy$-gtd-path (if zy$-use-zybox-p
-                             (expand-file-name "org/org-gtd"
-                                               zy$-zybox-path)
-                           org-directory)
-    "Where the GTD files are stored."
-    :type 'directory
-    :group 'zyemacs)
-
-  (unless (file-directory-p zy$-gtd-path)
-    (setq zy$-use-gtd-p nil))
-
-  (when zy$-use-gtd-p
+  (zb init-gtd
+    ;; Determine if GTD should be loaded.
+    (defvar zy-gtd-path
+      (cond
+       ((boundp 'zy-gtd-path)
+        zy-gtd-path)
+       (zy$-use-zybox-p
+        (expand-file-name "org/org-gtd" zy$-zybox-path))
+       (t nil))
+      "Where the GTD files are stored.")
+    :when zy-gtd-path
+    ;; Key-bindings.
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "a" 'org-agenda
+     "c" 'org-capture)
+    ;; Lazy load other configuration.
+    :after-load '(org-agenda org-capture)
     (defvar zy-gtd-inbox-file
       (expand-file-name "inbox.org" zy$-gtd-path)
       "The path of \"inbox.org\" of the GTD system.")
@@ -1162,12 +1170,11 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
     (defvar zy-gtd-files
       `(,zy-gtd-inbox-file ,zy-gtd-gtd-file ,zy-gtd-someday-file)
       "List of all files of the GTD system.")
-
     ;; Create empty GTD file if not exists.
     (dolist (file zy-gtd-files)
       (unless (file-exists-p file)
         (write-region "" nil file)))
-
+    ;; Settings.
     (setq
      org-log-done 'time
      org-log-refile 'time
@@ -1201,40 +1208,29 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
                               ("DONE" .
                                (:inherit org-todo :foreground "#33691E"))
                               ("CANCELED" .
-                               (:inherit org-todo :foreground "#757575"))))
-
-    (general-define-key
-     :keymaps 'zy-leader-map
-     "a" 'org-agenda
-     "c" 'org-capture))
-#+end_src
-
-** Org-Appear
-
-#+begin_src emacs-lisp
-  (zy-pkg! 'org-appear)
-  (add-hook 'org-mode-hook 'org-appear-mode)
-  (setq-default org-hide-emphasis-markers t)
+                               (:inherit org-todo :foreground "#757575")))))
 #+end_src
 
 ** Org-Superstar
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'org-superstar)
-  (add-hook 'org-mode-hook 'org-superstar-mode)
-  (setq org-superstar-headline-bullets-list '(#x25c9
-                                              #x25cb
-                                              #x25c8
-                                              #x25c7
-                                              #x2666)
-        org-superstar-cycle-headline-bullets nil
-        org-hide-leading-stars nil
-        org-superstar-leading-bullet #x200b
-        org-indent-mode-turns-on-hiding-stars nil
-        org-superstar-item-bullet-alist '((42 . #x2605)
-                                          (43 . #x2666)
-                                          (45 . #x27a4)))
-  (with-eval-after-load 'org-superstar
+  (zb init-org-superstar
+    :when (display-graphic-p)
+    :pkg 'org-superstar
+    (add-hook 'org-mode-hook 'org-superstar-mode)
+    (setq org-superstar-headline-bullets-list '(#x25c9
+                                                #x25cb
+                                                #x25c8
+                                                #x25c7
+                                                #x2666)
+          org-superstar-cycle-headline-bullets nil
+          org-hide-leading-stars nil
+          org-superstar-leading-bullet #x200b
+          org-indent-mode-turns-on-hiding-stars nil
+          org-superstar-item-bullet-alist '((42 . #x2605)
+                                            (43 . #x2666)
+                                            (45 . #x27a4)))
+    :after-load 'org-superstar
     (dolist (face '(org-superstar-header-bullet
                     org-superstar-item
                     org-superstar-leading))
@@ -1244,47 +1240,45 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
 ** Org-Journal
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'org-journal)
-  (general-define-key
-   :keymaps 'zy-leader-map
-   "g" 'calendar
-   "j" 'org-journal-new-entry)
-  (setq org-journal-extend-today-until 3
-        org-journal-file-format "%F.org"
-        org-journal-date-format "%F %a W%V\n"
-        org-journal-date-prefix "#+title: "
-        org-journal-time-format "%R "
-        org-journal-time-format-post-midnight "%R (midnight) "
-        org-journal-time-prefix "\n* "
-        org-journal-file-header "")
-  (when zy$-use-zybox-p
+  (zb init-org-journal
     (setq org-journal-dir
-          (expand-file-name "org/org-journal" zy$-zybox-path)))
+          (cond
+           ((boundp 'org-journal-dir)
+            org-journal-dir)
+           (zy$-use-zybox-p
+            (expand-file-name "org/org-journal" zy$-zybox-path))
+           (t nil)))
+    :when org-journal-dir
+    :pkg 'org-journal
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "g" 'calendar
+     "j" 'org-journal-new-entry)
+    (setq org-journal-extend-today-until 3
+          org-journal-file-format "%F.org"
+          org-journal-date-format "%F %a W%V\n"
+          org-journal-date-prefix "#+title: "
+          org-journal-time-format "%R "
+          org-journal-time-format-post-midnight "%R (midnight) "
+          org-journal-time-prefix "\n* "
+          org-journal-file-header ""))
 #+end_src
 
 ** Org-Roam
 
-*** Setup
+*** Basic Setup
 
 Load org-roam when ~org-roam-directory~ is valid.
 
 #+begin_src emacs-lisp
-  (when zy$-zybox-path
-    (customize-set-value 'org-roam-directory
-                         (expand-file-name
-                          "org/org-roam"
-                          zy$-zybox-path)))
-
-  (defvar zy$-use-org-roam-p t
-    "Should ZyEmacs use org-roam.
-
-  If `org-roam-directory' does not exist as a directory, this
-  variable will be automatically set to nil.")
-
-  (unless (and (boundp 'org-roam-directory)
-               (file-directory-p org-roam-directory))
-    (setq zy$-use-org-roam-p nil))
-
-  (when zy$-use-org-roam-p
-    (zy-pkg! 'org-roam))
+  (zb init-org-roam
+    (setq org-roam-directory
+          (cond
+           ((boundp 'org-roam-directory)
+            org-roam-directory)
+           (zy$-use-zybox-p
+            (expand-file-name "org/org-roam" zy$-zybox-path))
+           (t nil)))
+    :when org-roam-directory
+    :pkg 'org-roam)
 #+end_src
