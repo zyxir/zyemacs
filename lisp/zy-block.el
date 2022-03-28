@@ -1,6 +1,6 @@
 ;;; zy-block.el --- configurable code blocks.
 
-(require 'zy-lisp)
+(require 'zy-lisp-utils)
 
 
 ;; Keyword management.
@@ -89,6 +89,15 @@ All other arguments correspond to those of `lwarn'."
 	 level
 	 message
 	 args))
+
+(defun zb-report-ex (name level ex)
+  "Report an error cons cell EX.
+
+NAME is the current zy-block name. LEVEL is the error level.
+
+EX is (ERROR-SYMBOL . SIGNAL-DATA) representing an error."
+  (let* ((ex-str (substring (pp-to-string ex) 0 -1)))
+    (lwarn (format "zb %s" name) level ex-str)))
 
 
 ;; Keyword parsing.
@@ -246,9 +255,9 @@ BODY will be reported by the zy-block."
       `((condition-case --ex--
 	    ,(if (cdr body) `(progn ,@body) (car body))
 	  ('warning
-	   (zb-warn ',name :warning "%s" --ex--))
+	   (zb-report-ex ',name :warning --ex--))
 	  ('error
-	   (zb-warn ',name :error "%s" --ex--))))
+	   (zb-report-ex ',name :error --ex--))))
     body))
 
 
@@ -282,18 +291,20 @@ If ARG is t, provide feature NAME."
   "Execute BODY after ARG is loaded.
 
 ARG is a feature name, or a list of feature names."
-  ;; Remove quote in arg.
-  (when (equal (car arg) 'quote)
-    (setq arg (cadr arg)))
-  ;; Wrap body in a single form.
-  (if (cdr body)
-      (setq body `(progn ,@body))
-    (setq body (car body)))
-  ;; Wrap body inside `eval-after-load'.
-  (if (listp arg)
-      (dolist (f (nreverse arg) `(,body))
-	(setq body `(eval-after-load ',f ,body)))
-    `((eval-after-load ',arg ,body))))
+  ;; Reorganize lists.
+  (when (and (consp arg)
+	     (equal (car arg) 'quote)
+	     (consp (cadr arg)))
+    (setq arg (nreverse
+	       (mapcar
+		(lambda (elt) `(quote ,elt))
+		(cadr arg)))))
+  ;; Wrap body.
+  (if (and (consp arg)
+	   (not (equal (car arg) 'quote)))
+      (dolist (f arg body)
+	(setq body `((eval-after-load ,f (lambda () ,@body)))))
+    `((eval-after-load ,arg (lambda () ,@body)))))
 
 
 ;; Keyword :idle.
@@ -303,30 +314,20 @@ ARG is a feature name, or a list of feature names."
   `((run-with-idle-timer ,arg nil (lambda () ,@body))))
 
 
-;; Keyword :pkg.
+;; Keyword :hook-into
 
-(defun zb-wrapper-pkg--recipe-p (sexp)
-  "Return t if SEXP is a package recipe."
-  (or (symbolp sexp)
-      (and (symbolp (cadr sexp))
-	   (equal (substring (symbol-name (cadr sexp)) 0 1) ":"))))
+(defun zb-wrapper-hook-into (name arg body)
+  "Add BODY to hook or hooks ARG.
 
-(defun zb-wrapper-pkg (name arg body)
-  "Execute BODY after package ARG is successfully installed.
-
-ARG is a package recipe, or a list of recipes."
+BODY will be wraped in a lambda function before added to ARG."
   ;; Remove quote in arg.
   (when (equal (car arg) 'quote)
     (setq arg (cadr arg)))
-  ;; Wrap BODY around package conditional.
-  (let ((pkgc nil))
-    (if (zb-wrapper-pkg--recipe-p arg)
-	(setq pkgc `(straight-use-package ',arg))
-      (push 'and pkgc)
-      (dolist (recipe arg)
-	(push `(straight-use-package ',recipe) pkgc))
-      (setq pkgc (nreverse pkgc)))
-    `((when ,pkgc ,@body))))
+  ;; Wrap body.
+  (if (symbolp arg)
+      `((add-hook ',arg (lambda () ,@body)))
+    `((dolist (hook ',arg)
+	(add-hook hook (lambda () ,@body))))))
 
 
 ;; Setup keywords.
@@ -343,7 +344,11 @@ ARG is a package recipe, or a list of recipes."
 (zb-define-keyword ':unless 'single #'zb-wrapper-unless)
 (zb-define-keyword ':after-load 'single #'zb-wrapper-after-load)
 (zb-define-keyword ':idle 'single #'zb-wrapper-idle)
-(zb-define-keyword ':pkg 'single #'zb-wrapper-pkg)
+(zb-define-keyword ':hook-into 'single #'zb-wrapper-hook-into)
+
+;; Setup zy-benchmark.el.
+
+(load "zy-benchmark" nil t)
 
 
 (provide 'zy-block)

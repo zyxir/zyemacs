@@ -36,7 +36,14 @@ See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.
 
 #+begin_src emacs-lisp :tangle ~/.emacs.d/early-init.el
   ;; -*- lexical-binding: t; -*-
-  (setq frame-inhibit-implied-resize t
+  (setq default-frame-alist '(;; Disable menu bar.
+                              (menu-bar-lines . nil)
+                              ;; Disable scroll bars.
+                              (horizontal-scroll-bars . nil)
+                              (vertical-scroll-bars . nil)
+                              ;; Disable tool bar.
+                              (tool-bar-lines . 0))
+        frame-inhibit-implied-resize t
         inhibit-startup-message t
         native-comp-async-report-warnings-errors nil
         package-enable-at-startup nil)
@@ -69,7 +76,7 @@ Adjust GC and ~file-name-handler-alist~ during startup, to speed up initialisati
                                                     --fnha--))))
 #+end_src
 
-** Load Path and Autoloads
+** Load Path
 
 Load the custom file, populate ~load-path~, and deal with autoloads.
 
@@ -87,87 +94,56 @@ Load the custom file, populate ~load-path~, and deal with autoloads.
 
   Directories are relative to `user-emasc-directory'.")
 
-  ;; Helper variables.
+  ;; All valid directories, in expanded form.
 
   (defvar zy--lisp-dirs
-    (remq nil
-          (mapcar
-           (lambda (dir)
-             (setq dir (file-truename
-                        (expand-file-name
-                         dir
-                         user-emacs-directory)))
-             (if (file-directory-p dir)
-                 dir
-               nil))
-           zy-lisp-dirs))
+    (let (rem)
+      (dolist (dir zy-lisp-dirs rem)
+	(setq dir (expand-file-name dir user-emacs-directory))
+	(when (file-directory-p dir)
+	  (push dir rem))))
     "All valid directories of `zy-lisp-dirs', in absolute path.
 
   A directory being valid means it exists.")
 
   ;; Populate `load-path'.
 
+  (defun zy-add-to-load-path-recursively (dir)
+    "Add DIR and its subdirectories to `load-path' recursively.
+
+  DIR must be a absolute directory name that does not end in \"/\".
+
+  This function do not check if DIR exists, nor if any directory is
+  already in `load-path'."
+    (push dir load-path)
+    (let ((dot (concat dir "/."))
+	  (dotdot (concat dir "/..")))
+      (dolist (f (directory-files dir 'full nil 'nosort))
+	(when (and
+	       (not (equal f dot))
+	       (not (equal f dotdot))
+	       (file-directory-p f))
+	  (zy-add-to-load-path-recursively f)))))
+
   (dolist (dir zy--lisp-dirs)
-    (let ((default-directory dir))
-      (add-to-list 'load-path dir)
-      (normal-top-level-add-subdirs-to-load-path)))
-
-  ;; A single file for autoloads.
-
-  (defvar zy-autoloads-file (expand-file-name
-                             "loaddefs.el"
-                             user-emacs-directory)
-    "File containing all autoloads for custom scripts.")
-
-  ;; Autoloads updater.
-
-  (defun zy/update-autoloads ()
-    "Update all autoloads for non-package lisp scripts."
-    (interactive)
-    (require 'autoload)
-    (unless (file-exists-p zy-autoloads-file)
-      (with-temp-buffer (write-file zy-autoloads-file)))
-    (let* ((files (apply
-                   #'append
-                   (mapcar
-                    (lambda (dir)
-                      (directory-files-recursively dir ".*\\.el"))
-                    zy--lisp-dirs))))
-      (dolist (file files)
-        (let ((generated-autoload-load-name (file-name-base file)))
-          (update-file-autoloads file t zy-autoloads-file))))
-    (byte-compile-file zy-autoloads-file)
-    (load zy-autoloads-file t))
-
-  ;; Update autoloads on exit.
-
-  (add-hook 'kill-emacs-hook #'zy/update-autoloads)
-
-  ;; Load autoloads now.
-
-  (if (file-exists-p zy-autoloads-file)
-      (load zy-autoloads-file t)
-    (zy/update-autoloads))
+    (zy-add-to-load-path-recursively dir))
 #+end_src
 
 ** Zy-Block
 
-I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a simpler version of ~use-package~ or ~leaf~, but with my own custom feature set. See ~lisp/zy-block.el~ and ~lisp/zy-block-keywords.el~ for its implementation.
+I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a simpler version of ~use-package~ or ~leaf~, but with my own custom feature set. See ~lisp/zy-block.el~ and ~lisp/zy-benchmark.el~ for its implementation.
 
 #+begin_src emacs-lisp
-  (load (expand-file-name "lisp/zy-block" user-emacs-directory))
+  (require 'zy-block)
   (setq zb-global-flag-alist
         '((:provide . t)
           (:protect . t)))
 
   ;; With "--zy-benchmark" option, enable benchmark for all zy-blocks.
 
-  (defun zy-do-nothing (&rest ignored)
-    "Ignore all arguments and do nothing.")
   (add-to-list 'command-switch-alist
-               '("--zy-benchmark" . zy-do-nothing))
+               '("--zy-benchmark" . (lambda (&rest ignored) t)))
   (when (member "--zy-benchmark" command-line-args)
-    (require 'zy-benchmark)
     (push '(:benchmark . t) zb-global-flag-alist))
 #+end_src
 
@@ -177,13 +153,15 @@ Personal information and top-level definitions.
 
 #+begin_src emacs-lisp
   (zb init-defs
+    ;; Personal information.
 
     (setq user-full-name "Eric Zhuo Chen"
           user-mail-address "zyxirchen@outlook.com")
 
     (defgroup zyemacs nil
-      "ZyEmacs customization options."
-      :group 'emacs)
+      "ZyEmacs customization options.")
+
+    ;; Operating system.
 
     (defconst zy-*windows* (eq system-type 'windows-nt)
       "If Emacs is run on Windows.")
@@ -194,193 +172,16 @@ Personal information and top-level definitions.
 
   Note that WSL is also Linux.")
 
-    (defconst zy-*wsl* (equal
-                        0
-                        (shell-command
-                         "grep -q microsoft /proc/version"))
-      "If Emacs is run on WSL."))
-#+end_src
+    (defun zy-wsl-p ()
+      "Return t if ZyEmacs is run on WSL."
+      (equal 0
+             (shell-command
+              "grep -q -e \"[Mm]icrosoft\" /proc/version")))
 
-* Utilities | 組件
+    ;; Swtiches of ZyEmacs features.
 
-** Package
-
-Manage package with straight.
-
-#+begin_src emacs-lisp
-  (unless (featurep 'straight)
-    ;; Bootstrap straight.el
-    (defvar bootstrap-version)
-    (let ((bootstrap-file
-           (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-          (bootstrap-version 5))
-      (unless (file-exists-p bootstrap-file)
-        (with-current-buffer
-            (url-retrieve-synchronously
-             "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-             'silent 'inhibit-cookies)
-          (goto-char (point-max))
-          (eval-print-last-sexp)))
-      (load bootstrap-file nil 'nomessage)))
-  (setq straight-vc-git-default-clone-depth 1)
-
-  (defmacro zy-pkg! (pkg &rest args)
-    "Install PKG with the default package manager of ZyEmacs.
-
-  Optionally, pass ARGS to the package manager.
-
-  Currently, the default package manager is straight.el."
-    `(straight-use-package ,pkg ,@args))
-#+end_src
-
-** Key-Binding
-
-Key-bindings are managed via ~straight~, and ~which-key~ provides key hints. The leader key of ZyEmacs, which is =M-m= by default, is also defined here.
-
-#+begin_src emacs-lisp
-  ;; Setup general.
-
-  (zy-pkg! 'general)
-
-  ;; Setup leader key.
-
-  (defcustom zy$-leader-key "M-m"
-    "The leader key of ZyEmacs."
-    :type 'key
-    :group 'zyemacs)
-  (define-prefix-command 'zy-leader-map)
-  (general-define-key zy$-leader-key 'zy-leader-map
-                      "M-z" 'back-to-indentation)
-
-  ;; Disable C-z for GUI.
-
-  (when (display-graphic-p)
-    (general-define-key "C-z" nil))
-
-  ;; Setup other prefix commands.
-
-  (define-prefix-command 'zy-leader-manage-map)
-  (general-define-key
-   :keymaps 'zy-leader-map
-   "m" 'zy-leader-manage-map
-   "M-m" 'zy-leader-manage-map)
-
-  ;; Setup which-key.
-
-  (zy-pkg! 'which-key)
-  (which-key-mode +1)
-#+end_src
-
-** Minibuffer
-
-Setup Vertico and other tools.
-
-#+begin_src emacs-lisp
-  ;; Setup Vertico.
-  (zy-pkg! 'vertico)
-  (vertico-mode +1)
-
-  ;; Setup Orderless.
-  (zy-pkg! 'orderless)
-  (setq completion-styles '(orderless partial-completion)
-        completion-category-defaults nil
-        completion-category-overrides '((file (styles partial-completion))))
-
-  ;; Setup Savehist.
-  (zy-pkg! 'savehist)
-  (savehist-mode +1)
-
-  ;; Setup Marginalia.
-  (zy-pkg! 'marginalia)
-  (marginalia-mode +1)
-
-  ;; Other minibuffer settings.
-  (setq minibuffer-prompt-properties
-        '(read-only t cursor-intangible t face minibuffer-prompt)
-        enable-recursive-minibuffers t)
-  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
-
-  ;; Consult provides a bunch of useful commands.
-
-  (zy-pkg! 'consult)
-  (setq completion-in-region-function
-        #'consult-completion-in-region)
-  (advice-add #'completing-read-multiple
-              :override #'consult-completing-read-multiple)
-
-  (general-define-key
-   "M-y" 'consult-yank-pop
-   "<help> a" 'consult-apropos)
-
-  (general-define-key
-   :keymaps 'mode-specific-map
-   "h" 'consult-history
-   "m" 'consult-mode-command
-   "k" 'consult-kmacro)
-
-  (general-define-key
-   :keymaps 'ctl-x-map
-   "M-:" 'consult-complex-command
-   "b" 'consult-buffer
-   "4 b" 'consult-buffer-other-window
-   "5 b" 'consult-buffer-other-frame
-   "r b" 'consult-bookmark
-   "p b" 'consult-project-buffer)
-
-  (general-define-key
-   :keymaps 'goto-map
-   "e" 'consult-compile-error
-   "f" 'consult-flymake
-   "g" 'consult-goto-line
-   "M-g" 'consult-goto-line
-   "o" 'consult-outline
-   "m" 'consult-mark
-   "k" 'consult-global-mark
-   "i" 'consult-imenu
-   "I" 'consult-imenu-multi)
-
-  (general-define-key
-   :keymaps 'search-map
-   "d" 'consult-find
-   "D" 'consult-locate
-   "g" 'consult-grep
-   "G" 'consult-git-grep
-   "r" 'consult-ripgrep
-   "l" 'consult-line
-   "L" 'consult-line-multi
-   "m" 'consult-multi-occur
-   "k" 'consult-keep-lines
-   "u" 'consult-focus-lines)
-
-  (general-define-key
-   :keymaps 'isearch-mode-map
-   "M-e" 'consult-isearch-history
-   "M-s e" 'consult-isearch-history
-   "M-s l" 'consult-line
-   "M-s L" 'consult-line-multi)
-
-  (general-define-key
-   :keymaps 'minibuffer-local-map
-   "M-s" 'consult-history
-   "M-r" 'consult-history)
-#+end_src
-
-** Emacs Server
-
-#+begin_src emacs-lisp
-  (run-with-idle-timer! 1
-    (require 'server)
-    (unless (server-running-p)
-      (server-start)))
-#+end_src
-
-** Zybox
-
-Zybox is the collection of my personal files.
-
-#+begin_src emacs-lisp
-  (defcustom zy$-use-zybox-p t
-    "Should ZyEmacs use the workflow designed around Zybox.
+    (defcustom zy$-use-zybox-p t
+      "Should ZyEmacs use the workflow designed around Zybox.
 
   Zybox is private directory of Zyxir, and ZyEmacs has a set of
   utilities to work with Zybox. If you are not Zyxir, the workflow
@@ -388,94 +189,310 @@ Zybox is the collection of my personal files.
 
   If no valid path of Zybox is detected or set by the user, this
   value will be automatically set to nil."
-    :type 'boolean
-    :group 'zyemacs)
+      :type 'boolean
+      :group 'zyemacs)
 
-  (defcustom zy$-zybox-path nil
-    "The path of Zybox, the collection of all my files.
+    (defcustom zy$-use-gtd-p t
+      "Should ZyEmacs use the built-in GTD system.
 
-  If it is not auto-detected, customize it to the actual path."
-    :type 'directory
-    :group 'zyemacs)
+  If `zy$-gtd-path' does not exist as a directory, this variable
+  will be automatically set to nil."
+      :type 'boolean
+      :group 'zyemacs))
+#+end_src
 
-  (defun zy--find-zybox ()
-    "Try to auto-detect the location of Zybox."
-    (let* ((zybox-possible-locs-windows
-            '("C:\\Zybox"
-              "C:\\Users\\zyxir\\Zybox"
-              "C:\\Users\\zyxir\\Documents\\Zybox"))
-           (zybox-possible-locs-linux
-            '("~/Zybox"
-              "~/Documents/Zybox"
-              "/mnt/c/Zybox"
-              "/mnt/c/Users/zyxir/Zybox"
-              "/mnt/c/Users/Documents/Zybox"))
-           (zybox-possible-locs
-            (cond
-             (zy-*windows* zybox-possible-locs-windows)
-             (zy-*linux* zybox-possible-locs-linux)
-             (t nil)))
-           loc-to-examine
-           path-found)
-      (while zybox-possible-locs
-        (setq loc-to-examine (car zybox-possible-locs))
-        (if (file-directory-p loc-to-examine)
-            (setq path-found loc-to-examine
-                  zybox-possible-locs nil)
-          (setq zybox-possible-locs
-                (cdr zybox-possible-locs))))
-      (if path-found
-          (lwarn 'zyemacs :warning
-                 "Zybox is auto-detected at %s." path-found)
-        (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
-      path-found))
+** Package Management
 
-  (when (and zy$-use-zybox-p
-             (not zy$-zybox-path))
-    (setq zy$-zybox-path (zy--find-zybox))
-    (if zy$-zybox-path
-        (customize-save-variable 'zy$-zybox-path zy$-zybox-path)
-      (customize-save-variable 'zy$-use-zybox-p nil)))
+Manage package with straight.
+
+#+begin_src emacs-lisp
+  (zb init-pkg
+    ;; Setup straight.el
+
+    (unless (featurep 'straight)
+      (defvar bootstrap-version)
+      (let ((bootstrap-file
+             (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+            (bootstrap-version 5))
+        (unless (file-exists-p bootstrap-file)
+          (with-current-buffer
+              (url-retrieve-synchronously
+               "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+               'silent 'inhibit-cookies)
+            (goto-char (point-max))
+            (eval-print-last-sexp)))
+        (load bootstrap-file nil 'nomessage)))
+    (setq straight-vc-git-default-clone-depth 1)
+
+    ;; Setup the :pkg keyword for zy-blocks.
+
+    (defun zb-wrapper-pkg--handler (qname pr)
+      "Install package according to PR.
+
+  QNAME is the quoted zy-block name, used for issuing warnings.
+
+  Currently, straight.el is used as the package manager. Thus, PR,
+  which means package reference, is a straight recipe, or a list of
+  straight recipes.
+
+  Return 't' if all packages specified are successfully installed.
+
+  If any of the packages specified is not successfully installed,
+  return 'nil'."
+      (let ((ret t))
+        (if (or (symbolp pr)
+                (and (consp pr)
+                     (cdr pr)
+                     (symbolp (cadr pr))
+                     (string-equal (substring
+                                    (symbol-name (cadr pr))
+                                    0 1)
+                                   ":")))
+            (setq ret (straight-use-package pr))
+          (while pr
+            (if (straight-use-package (car pr))
+                (setq pr (cdr pr))
+              (setq pr nil
+                    ret nil))))
+        ret))
+
+    (defun zb-wrapper-pkg (name arg body)
+      "Execute BODY after package ARG is successfully installed.
+
+  ARG is a package recipe, or a list of recipes."
+      ;; Wrap BODY around package conditional.
+      `((when (zb-wrapper-pkg--handler ',name ,arg) ,@body)))
+
+    (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg)
+
+    (defmacro zy-pkg! (pkg &rest args)
+      "Install PKG with the default package manager of ZyEmacs.
+
+  Optionally, pass ARGS to the package manager.
+
+  Currently, the default package manager is straight.el."
+      `(straight-use-package ,pkg ,@args)))
 #+end_src
 
 * General | 一般性設置
 
-** Basic Settings
+** Autoloads
+
+Recursively update all autoloads under lisp and site-lisp directories, and load autoloads at startup.
 
 #+begin_src emacs-lisp
-  (setq
-   auto-save-default nil
-   disabled-command-function nil
-   frame-title-format (if zy-*windows*
-                          '("" "windows-emacs" " [%b]")
-                        '("" "emacs" " [%b]"))
-   inhibit-compacting-font-caches t
-   make-backup-files nil
-   project-switch-commands '((project-find-file "Find file" "f")
-                             (project-find-regexp "Find regexp" "g")
-                             (project-find-dir "Find directory" "d")
-                             (project-vc-dir "VC-Dir" "v")
-                             (project-eshell "Eshell" "s")
-                             (magit-project-status "Magit" "m"))
-   system-time-locale "C"
-   use-dialog-box nil
-   word-wrap-by-category t)
+  (zb init-autoloads
+    ;; A single file for autoloads.
 
-  (setq-default fill-column 80)
+    (defvar zy-loaddefs-file (expand-file-name
+                              "loaddefs.el"
+                              user-emacs-directory)
+      "File containing all autoloads for custom scripts.")
 
-  (add-hook! 'after-init-hook
-    (delete-selection-mode +1)
-    (global-display-line-numbers-mode +1)
-    (global-subword-mode +1)
-    (recentf-mode +1)
-    (save-place-mode +1)
-    (load "kinsoku" 'noerror 'nomessage))
+    ;; Autoloads updater.
 
-  (dolist (hook '(prog-mode-hook text-mode-hook))
-    (add-hook! hook
-      (setq-local show-trailing-whitespace t)
-      (hl-line-mode +1)
-      (auto-revert-mode +1)))
+    (defun zy/update-autoloads ()
+      "Update all autoloads for non-package lisp scripts."
+      (interactive)
+      (require 'autoload)
+      (unless (file-exists-p zy-loaddefs-file)
+        (with-temp-buffer (write-file zy-loaddefs-file)))
+      (let* ((files (apply
+                     #'append
+                     (mapcar
+                      (lambda (dir)
+                        (directory-files-recursively dir ".*\\.el"))
+                      zy--lisp-dirs))))
+        (dolist (file files)
+          (let ((generated-autoload-load-name (file-name-base file)))
+            (update-file-autoloads file t zy-loaddefs-file))))
+      (byte-compile-file zy-loaddefs-file)
+      (load zy-loaddefs-file t))
+
+    ;; Update autoloads on exit.
+
+    (add-hook 'kill-emacs-hook #'zy/update-autoloads)
+
+    ;; Load autoloads now.
+
+    (if (file-exists-p zy-loaddefs-file)
+        (load zy-loaddefs-file t)
+      (zy/update-autoloads)))
+#+end_src
+
+** Emacs Server
+
+#+begin_src emacs-lisp
+  (zb init-server
+    :idle 1
+    (require 'server)
+    (unless (server-running-p)
+      (server-start)))
+#+end_src
+
+** Key-Binding
+
+Key-bindings are managed via ~general.el~, and ~which-key~ provides key hints. The leader key of ZyEmacs, which is =M-m= by default, is also defined here.
+
+#+begin_src emacs-lisp
+  (zb init-key
+    :pkg '(general which-key)
+    ;; Setup leader key.
+
+    (defcustom zy$-leader-key "M-m"
+      "The leader key of ZyEmacs."
+      :type 'key
+      :group 'zyemacs)
+    (define-prefix-command 'zy-leader-map)
+    (general-define-key zy$-leader-key 'zy-leader-map
+                        "M-z" 'back-to-indentation)
+
+    ;; Disable C-z for GUI.
+
+    (when (display-graphic-p)
+      (general-define-key "C-z" nil))
+
+    ;; Setup other prefix commands.
+
+    (define-prefix-command 'zy-leader-manage-map)
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "m" 'zy-leader-manage-map
+     "M-m" 'zy-leader-manage-map)
+
+    ;; Setup which-key.
+
+    (which-key-mode +1))
+#+end_src
+
+** Minibuffer
+
+Setup Vertico and other tools.
+
+#+begin_src emacs-lisp
+  (zb init-minibuffer
+    :pkg '(vertico savehist marginalia orderless consult)
+    ;; Enable modes.
+    (vertico-mode +1)
+    (savehist-mode +1)
+    (marginalia-mode +1)
+
+    ;; Setup Orderless.
+    (setq completion-styles '(orderless partial-completion)
+          completion-category-defaults nil
+          completion-category-overrides '((file (styles partial-completion))))
+
+    ;; Other minibuffer settings.
+    (setq minibuffer-prompt-properties
+          '(read-only t cursor-intangible t face minibuffer-prompt)
+          enable-recursive-minibuffers t)
+    (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+    ;; Consult settings.
+
+    (setq completion-in-region-function
+          #'consult-completion-in-region)
+    (advice-add #'completing-read-multiple
+                :override #'consult-completing-read-multiple)
+
+    ;; Consult bindings.
+
+    (general-define-key
+     "M-y" 'consult-yank-pop
+     "<help> a" 'consult-apropos)
+
+    (general-define-key
+     :keymaps 'mode-specific-map
+     "h" 'consult-history
+     "m" 'consult-mode-command
+     "k" 'consult-kmacro)
+
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "M-:" 'consult-complex-command
+     "b" 'consult-buffer
+     "4 b" 'consult-buffer-other-window
+     "5 b" 'consult-buffer-other-frame
+     "r b" 'consult-bookmark
+     "p b" 'consult-project-buffer)
+
+    (general-define-key
+     :keymaps 'goto-map
+     "e" 'consult-compile-error
+     "f" 'consult-flymake
+     "g" 'consult-goto-line
+     "M-g" 'consult-goto-line
+     "o" 'consult-outline
+     "m" 'consult-mark
+     "k" 'consult-global-mark
+     "i" 'consult-imenu
+     "I" 'consult-imenu-multi)
+
+    (general-define-key
+     :keymaps 'search-map
+     "d" 'consult-find
+     "D" 'consult-locate
+     "g" 'consult-grep
+     "G" 'consult-git-grep
+     "r" 'consult-ripgrep
+     "l" 'consult-line
+     "L" 'consult-line-multi
+     "m" 'consult-multi-occur
+     "k" 'consult-keep-lines
+     "u" 'consult-focus-lines)
+
+    (general-define-key
+     :keymaps 'isearch-mode-map
+     "M-e" 'consult-isearch-history
+     "M-s e" 'consult-isearch-history
+     "M-s l" 'consult-line
+     "M-s L" 'consult-line-multi)
+
+    (general-define-key
+     :keymaps 'minibuffer-local-map
+     "M-s" 'consult-history
+     "M-r" 'consult-history))
+#+end_src
+
+** Native Settings
+
+Configuring native Emacs features.
+
+#+begin_src emacs-lisp
+  (zb init-native
+    (setq
+     auto-save-default nil
+     disabled-command-function nil
+     frame-title-format (if zy-*windows*
+                            '("" "windows-emacs" " [%b]")
+                          '("" "emacs" " [%b]"))
+     inhibit-compacting-font-caches t
+     make-backup-files nil
+     project-switch-commands '((project-find-file "Find file" "f")
+                               (project-find-regexp "Find regexp" "g")
+                               (project-find-dir "Find directory" "d")
+                               (project-vc-dir "VC-Dir" "v")
+                               (project-eshell "Eshell" "s")
+                               (magit-project-status "Magit" "m"))
+     system-time-locale "C"
+     use-dialog-box nil
+     word-wrap-by-category t)
+
+    (setq-default fill-column 80)
+
+    (add-hook! 'after-init-hook
+      (delete-selection-mode +1)
+      (global-display-line-numbers-mode +1)
+      (global-subword-mode +1)
+      (recentf-mode +1)
+      (save-place-mode +1)
+      (load "kinsoku" 'noerror 'nomessage))
+
+    (dolist (hook '(prog-mode-hook text-mode-hook))
+      (add-hook! hook
+        (setq-local show-trailing-whitespace t)
+        (hl-line-mode +1)
+        (auto-revert-mode +1))))
 #+end_src
 
 ** Restart-Emacs
@@ -532,260 +549,135 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
      "T" 'zy/test-config))
 #+end_src
 
-** Super Save
+** Save
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'super-save)
-  (setq super-save-auto-save-when-idle t)
-  (super-save-mode +1)
+  (zb init-save
+    :pkg 'super-save
+    (setq super-save-auto-save-when-idle t)
+    (super-save-mode +1))
 #+end_src
 
 ** Text Alignment
 
-#+begin_src emacs-lisp
-  ;; Valign visually aligns org tables.
+Visually align texts in tables in Markdown mode and Org mode.
 
-  (zy-pkg! 'valign)
-  (dolist (hook '(org-mode-hook
-                  markdown-mode-hook))
-    (add-hook hook #'valign-mode))
+#+begin_src emacs-lisp
+  (zb init-align
+    :pkg 'valign
+    (dolist (hook '(org-mode-hook
+                    markdown-mode-hook))
+      (add-hook hook #'valign-mode)))
 #+end_src
 
 ** Version Control
 
 #+begin_src emacs-lisp
-  ;; Diff-hl highlights uncommitted changes in the gutter.
+  ;; For native VC mode.
 
-  (with-eval-after-load 'vc
-    (zy-pkg! 'diff-hl)
-    (global-diff-hl-mode +1)
-    (diff-hl-flydiff-mode +1))
+  (zb init-vc
+    ;; Diff-hl highlight changed zones in the left fringe.
+    :pkg 'diff-hl
+    (dolist (hook '(text-mode-hook prog-mode-hook))
+      (add-hook hook
+                (lambda ()
+                  (diff-hl-mode +1)
+                  (diff-hl-flydiff-mode +1)))))
 
-  ;; Magit is a git porcelain inside Emacs.
+  ;; Simplify git operations with magit.
 
-  (zy-pkg! 'magit)
-  (general-define-key
-   :keymaps 'ctl-x-map
-   "g" 'magit-status
-   "M-g" 'magit-dispatch)
+  (zb init-magit
+    :pkg 'magit
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "g" 'magit-status
+     "M-g" 'magit-dispatch))
+#+end_src
+
+** Zybox
+
+Zybox is the collection of my personal files.
+
+#+begin_src emacs-lisp
+  (zb init-zybox
+    (defcustom zy$-zybox-path nil
+      "The path of Zybox, the collection of all my files.
+
+  If it is not auto-detected, customize it to the actual path."
+      :type 'directory
+      :group 'zyemacs)
+
+    (defun zy--find-zybox ()
+      "Try to auto-detect the location of Zybox."
+      (let* ((zybox-possible-locs-windows
+              '("C:\\Zybox"
+                "C:\\Users\\zyxir\\Zybox"
+                "C:\\Users\\zyxir\\Documents\\Zybox"))
+             (zybox-possible-locs-linux
+              '("~/Zybox"
+                "~/Documents/Zybox"
+                "/mnt/c/Zybox"
+                "/mnt/c/Users/zyxir/Zybox"
+                "/mnt/c/Users/Documents/Zybox"))
+             (zybox-possible-locs
+              (cond
+               (zy-*windows* zybox-possible-locs-windows)
+               (zy-*linux* zybox-possible-locs-linux)
+               (t nil)))
+             loc-to-examine
+             path-found)
+        (while zybox-possible-locs
+          (setq loc-to-examine (car zybox-possible-locs))
+          (if (file-directory-p loc-to-examine)
+              (setq path-found loc-to-examine
+                    zybox-possible-locs nil)
+            (setq zybox-possible-locs
+                  (cdr zybox-possible-locs))))
+        (if path-found
+            (lwarn 'zyemacs :warning
+                   "Zybox is auto-detected at %s." path-found)
+          (lwarn 'zyemacs :warning "Could not auto-detect Zybox."))
+        path-found))
+
+    (when (and zy$-use-zybox-p
+               (not zy$-zybox-path))
+      (setq zy$-zybox-path (zy--find-zybox))
+      (if zy$-zybox-path
+          (customize-save-variable 'zy$-zybox-path zy$-zybox-path)
+        (customize-save-variable 'zy$-use-zybox-p nil))))
 #+end_src
 
 * UI | 用戶界面
 
-** Toggle UI Elements
+** Basic UI Settings
 
 #+begin_src emacs-lisp
-  (menu-bar-mode -1)
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
-  (column-number-mode +1)
-#+end_src
+  (zb init-ui
+    ;; Toggle UI elements.
+    (column-number-mode +1)
 
-** Theme
-
-*** Load Default Theme
-
-#+begin_src emacs-lisp
-  (defun zy-theme-func-default ()
-    "Default function to setup theme."
-    (if (display-graphic-p)
-        (progn
-          (zy-pkg! 'spacemacs-theme)
-          (require 'spacemacs-common)
-          (load-theme 'spacemacs-light t))
-      (load-theme 'wombat t)))
-
-  (defcustom zy$-theme-func #'zy-theme-func-default
-    "Function to setup theme."
-    :type 'function
-    :group 'zyemacs)
-
-  (funcall zy$-theme-func)
-
-  (defcustom zy$-use-solaire-p t
-    "Should ZyEmacs install and enable 'solaire-mode'."
-    :type 'boolean
-    :group 'zyemacs)
-
-  (when zy$-use-solaire-p
-    (zy-pkg! 'solaire-mode)
-    (solaire-global-mode +1))
-#+end_src
-
-*** Theme Hooks
-
-The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
-
-#+begin_src emacs-lisp
-  (defvar after-enable-theme-hook nil
-    "Hook run after a theme is enabled via `enable-theme'.
-
-  `enable-theme' always enables the theme 'user' as well, and that
-  won't trigger this hook.
-
-  Note that `load-theme' also runs `enable-theme'.")
-
-  (defun run-after-enable-theme-hook (theme)
-    "Run `after-enable-theme-hook'."
-    (unless (equal theme 'user)
-      (run-hooks 'after-enable-theme-hook)))
-
-  (advice-add #'enable-theme :after #'run-after-enable-theme-hook)
-#+end_src
-
-** Font
-
-~lisp/zy-font.el~ provides an abstraction of the basic Emacs font system, which is more practical for Chinese users, via these functions and macros:
-
-- ~zf-set-font-for~
-- ~zf-set-font~
-- ~zf-font-available-p~
-- ~zf-pick-font~
-
-With which the fonts are customized below:
-
-#+begin_src emacs-lisp
-  (defun zy-setup-font ()
-    "Setup font settings.
-
-  Does nothing in a terminal environment."
-    (when (display-graphic-p)
-      (defcustom zy$-font-mono (zf-pick-font
-                                "Sarasa Mono Slab TC"
-                                "Iosevka Term Slab"
-                                "Consolas"
-                                "monospace")
-        "Monospace font. Used on most occasions."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-mono-cjk (zf-pick-font
-                                    "GenYoGothic TW"
-                                    "Sarasa Mono Slab TC"
-                                    "Microsoft YaHei"
-                                    "monospace")
-        "Monospace font for CJK characters and punctuations."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-sans (zf-pick-font
-                                "Roboto Slab"
-                                "Noto Sans"
-                                "Calibri"
-                                "sans-serif")
-        "Sans-serif font. Used occasionally."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-sans-cjk (zf-pick-font
-                                    "GenYoGothic TW"
-                                    "Sarasa Mono Slab TC"
-                                    "Microsoft YaHei"
-                                    "sans-serif")
-        "Sans-serif font for CJK characters and punctuations."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-serif (zf-pick-font
-                                 "IBM Plex Serif"
-                                 "Noto Serif"
-                                 "Times New Roman"
-                                 "serif")
-        "Serif font. Used occasionally."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-serif-cjk (zf-pick-font
-                                     "GenYoMin TW"
-                                     "Noto Serif CJK TC"
-                                     "STSong"
-                                     "serif")
-        "Serif font for CJK characters and punctuations."
-        :type 'sexp
-        :group 'zyemacs)
-      (defcustom zy$-font-size 16
-        "Default font size for the UI."
-        :type 'integer
-        :group 'zyemacs)
-      (defcustom zy$-font-size-vp 18
-        "Default font size for the 'variable-pitch' face."
-        :type 'integer
-        :group 'zyemacs)
-
-      ;; Set monospace font as default.
-      (zf-set-font zy$-font-mono zy$-font-size zy$-font-mono-cjk
-                   'default)
-      ;; Set serif font as the variable pitch font.
-      (zf-set-font zy$-font-serif zy$-font-size-vp zy$-font-serif-cjk
-                   'variable-pitch)))
-
-  (add-hook 'after-init-hook #'zy-setup-font)
-#+end_src
-
-** Frame Size
-
-#+begin_src emacs-lisp
-  (defcustom zy$-frame-width-standard 100
-    "Standard frame width for new frames."
-    :type 'integer
-    :group 'zyemacs)
-  (defcustom zy$-frame-height-standard 40
-    "Standard frame height for new frames."
-    :type 'integer
-    :group 'zyemacs)
-  (defcustom zy$-frame-width-darkroom 120
-    "Standard frame width for Darkroom mode."
-    :type 'integer
-    :group 'zyemacs)
-  (defcustom zy$-frame-height-darkroom 40
-    "Standard frame height for Darkroom mode."
-    :type 'integer
-    :group 'zyemacs)
-
-  (defun zy/resize-frame (&optional frame no-rem)
-    "Resize FRAME to standard size.
-
-  If NO-REM is nil or omitted, remember the frame size before
-  resize in the 'width-rem' and 'height-rem' frame parameters."
-    (interactive)
-    (when (display-graphic-p)
-      (let* ((width-standard (if (and (boundp 'darkroom-mode)
-                                      darkroom-mode)
-                                 zy$-frame-width-darkroom
-                               zy$-frame-width-standard))
-             (height-standard (if (and (boundp 'darkroom-mode)
-                                       darkroom-mode)
-                                 zy$-frame-height-darkroom
-                               zy$-frame-height-standard))
-             (is-standard (and
-                           (= (frame-width) width-standard)
-                           (= (frame-height) height-standard)))
-             (width-rem (frame-parameter frame 'width-rem))
-             (height-rem (frame-parameter frame 'height-rem)))
-        (unless (or no-rem is-standard)
-          (modify-frame-parameters frame
-                                   `((width-rem . ,(frame-width))
-                                     (height-rem . ,(frame-height)))))
-        (if (and is-standard width-rem height-rem)
-            (set-frame-size frame width-rem height-rem)
-          (set-frame-size frame width-standard height-standard)))))
-
-  (add-to-list 'after-make-frame-functions
-               #'zy/resize-frame)
-  (add-hook! 'emacs-startup-hook
-    (zy/resize-frame nil 'no-rem))
+    ;; UI customization group.
+    (defgroup zyemacs-ui nil
+      "UI customization options of ZyEmacs."
+      :group 'zyemacs))
 #+end_src
 
 ** Distraction-Free Mode
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'darkroom)
-  (setq darkroom-margins 0.1
-        darkroom-text-scale-increase 1)
-  (general-define-key
-   :keymaps 'zy-leader-manage-map
-   "d" #'darkroom-mode)
-  (add-hook! 'darkroom-mode-hook
-    (let ((inhibit-message t))
-      (delete-other-windows))
-    (hl-line-mode 'toggle))
-
-  (with-eval-after-load 'darkroom
+  (zb init-distraction-free
+    :pkg 'darkroom
+    (setq darkroom-margins 0.1
+          darkroom-text-scale-increase 1)
+    (general-define-key
+     :keymaps 'zy-leader-manage-map
+     "d" #'darkroom-mode)
+    (add-hook 'darkroom-mode-hook
+              (lambda ()
+                (let ((inhibit-message t))
+                  (delete-other-windows))
+                (hl-line-mode 'toggle)))
+    :after-load '(darkroom init-frame-size)
     (defun zy-darkroom-switch-size (&optional frame)
       "Switch FRAME size for `darkroom-mode'.
 
@@ -823,47 +715,221 @@ With which the fonts are customized below:
                                 zy$-frame-width-standard
                                 zy$-frame-height-standard))
            (t nil)))))
-
     (add-hook 'darkroom-mode-hook #'zy-darkroom-switch-size)
     (add-to-list 'window-buffer-change-functions
                  #'zy-darkroom-switch-size))
 #+end_src
 
+** Font
+
+~lisp/zy-font.el~ provides an abstraction of the basic Emacs font system, which is more practical for Chinese users, via these functions and macros:
+
+- ~zf-set-font-for~
+- ~zf-set-font~
+- ~zf-font-available-p~
+- ~zf-pick-font~
+
+With which the fonts are customized here:
+
+#+begin_src emacs-lisp
+  (zb init-font
+    :when (display-graphic-p)
+    :hook-into 'after-init-hook
+    (defcustom zy$-font-mono (zf-pick-font
+                              "Sarasa Mono Slab TC"
+                              "Iosevka Term Slab"
+                              "Consolas"
+                              "monospace")
+      "Monospace font. Used on most occasions."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-mono-cjk (zf-pick-font
+                                  "GenYoGothic TW"
+                                  "Sarasa Mono Slab TC"
+                                  "Microsoft YaHei"
+                                  "monospace")
+      "Monospace font for CJK characters and punctuations."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-sans (zf-pick-font
+                              "Roboto Slab"
+                              "Noto Sans"
+                              "Calibri"
+                              "sans-serif")
+      "Sans-serif font. Used occasionally."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-sans-cjk (zf-pick-font
+                                  "GenYoGothic TW"
+                                  "Sarasa Mono Slab TC"
+                                  "Microsoft YaHei"
+                                  "sans-serif")
+      "Sans-serif font for CJK characters and punctuations."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-serif (zf-pick-font
+                               "IBM Plex Serif"
+                               "Noto Serif"
+                               "Times New Roman"
+                               "serif")
+      "Serif font. Used occasionally."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-serif-cjk (zf-pick-font
+                                   "GenYoMin TW"
+                                   "Noto Serif CJK TC"
+                                   "STSong"
+                                   "serif")
+      "Serif font for CJK characters and punctuations."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-size 16
+      "Default font size for the UI."
+      :type 'integer
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-size-vp 18
+      "Default font size for the 'variable-pitch' face."
+      :type 'integer
+      :group 'zyemacs-ui)
+    (defcustom zy$-use-variable-pitch-p t
+      "Should ZyEmacs use `variable-pitch-mode' in certain modes."
+      :type 'boolean
+      :group 'zyemacs-ui)
+
+    ;; Set monospace font as default.
+    (zf-set-font zy$-font-mono zy$-font-size zy$-font-mono-cjk
+                 'default)
+    ;; Set serif font as the variable pitch font.
+    (zf-set-font zy$-font-serif zy$-font-size-vp zy$-font-serif-cjk
+                 'variable-pitch))
+#+end_src
+
+** Frame Size
+
+#+begin_src emacs-lisp
+  (zb init-frame-size
+    (defcustom zy$-frame-width-standard 100
+      "Standard frame width for new frames."
+      :type 'integer
+      :group 'zyemacs-ui)
+    (defcustom zy$-frame-height-standard 40
+      "Standard frame height for new frames."
+      :type 'integer
+      :group 'zyemacs-ui)
+    (defcustom zy$-frame-width-darkroom 120
+      "Standard frame width for Darkroom mode."
+      :type 'integer
+      :group 'zyemacs-ui)
+    (defcustom zy$-frame-height-darkroom 40
+      "Standard frame height for Darkroom mode."
+      :type 'integer
+      :group 'zyemacs-ui)
+
+    (defun zy/resize-frame (&optional frame no-rem)
+      "Resize FRAME to standard size.
+
+  If NO-REM is nil or omitted, remember the frame size before
+  resize in the 'width-rem' and 'height-rem' frame parameters."
+      (interactive)
+      (when (display-graphic-p)
+        (let* ((width-standard (if (and (boundp 'darkroom-mode)
+                                        darkroom-mode)
+                                   zy$-frame-width-darkroom
+                                 zy$-frame-width-standard))
+               (height-standard (if (and (boundp 'darkroom-mode)
+                                         darkroom-mode)
+                                    zy$-frame-height-darkroom
+                                  zy$-frame-height-standard))
+               (is-standard (and
+                             (= (frame-width) width-standard)
+                             (= (frame-height) height-standard)))
+               (width-rem (frame-parameter frame 'width-rem))
+               (height-rem (frame-parameter frame 'height-rem)))
+          (unless (or no-rem is-standard)
+            (modify-frame-parameters frame
+                                     `((width-rem . ,(frame-width))
+                                       (height-rem . ,(frame-height)))))
+          (if (and is-standard width-rem height-rem)
+              (set-frame-size frame width-rem height-rem)
+            (set-frame-size frame width-standard height-standard)))))
+
+    (add-to-list 'after-make-frame-functions
+                 #'zy/resize-frame)
+    (add-hook 'emacs-startup-hook
+              (lambda ()
+                (zy/resize-frame nil 'no-rem))))
+#+end_src
+R
 ** Mode Line
 
 #+begin_src emacs-lisp
-  ;; Simpler mode line.
+  (zb init-mode-line
+    ;; Hide minor modes that I don't care.
+    :pkg 'dim
+    :hook-into 'emacs-startup-hook
+    (dim-minor-names '((auto-revert-mode nil autorevert)
+                       (buffer-face-mode nil face-remap)
+                       (eldoc-mode nil eldoc)
+                       (org-indent-mode nil org-indent)
+                       (org-src-mode nil org-src)
+                       (subword-mode nil subword)
+                       (super-save-mode nil super-save)
+                       (valign-mode nil valign)
+                       (visual-line-mode nil simple)
+                       (which-key-mode nil which-key))))
+#+end_src
 
-  (setq-default mode-line-format
-                '("%e" mode-line-front-space
-                  (:propertize
-                   ("" mode-line-mule-info mode-line-client mode-line-modified mode-line-remote)
-                   display
-                   (min-width
-                    (5.0)))
-                  mode-line-frame-identification
-                  mode-line-buffer-identification
-                  "   "
-                  mode-line-position
-                  (vc-mode vc-mode)
-                  "  "
-                  mode-line-modes
-                  mode-line-misc-info
-                  mode-line-end-spaces))
+** Theme
 
-  ;; Hide minor modes that I don't care.
+*** Load Default Theme
 
-  (zy-pkg! 'dim)
-  (dim-minor-names '((auto-revert-mode nil autorevert)
-                     (buffer-face-mode nil face-remap)
-                     (eldoc-mode nil eldoc)
-                     (org-indent-mode nil org-indent)
-                     (org-src-mode nil org-src)
-                     (subword-mode nil subword)
-                     (super-save-mode nil super-save)
-                     (valign-mode nil valign)
-                     (visual-line-mode nil simple)
-                     (which-key-mode nil which-key)))
+#+begin_src emacs-lisp
+  (zb init-theme
+    (defun zy-theme-func-default ()
+      "Default function to setup theme."
+      (if (display-graphic-p)
+          (progn
+            (straight-use-package 'spacemacs-theme)
+            (require 'spacemacs-common)
+            (load-theme 'spacemacs-light t))
+        (load-theme 'wombat t)))
+    (defcustom zy$-theme-func #'zy-theme-func-default
+      "Function to setup theme."
+      :type 'function
+      :group 'zyemacs-ui)
+    (funcall zy$-theme-func))
+
+  (zb init-solaire
+    (defcustom zy$-use-solaire-p t
+      "Should ZyEmacs install and enable 'solaire-mode'."
+      :type 'boolean
+      :group 'zyemacs-ui)
+    :when (and zy$-use-solaire-p
+               (display-graphic-p))
+    :pkg 'solaire-mode
+    (solaire-global-mode +1))
+#+end_src
+
+*** Theme Hooks
+
+The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
+
+#+begin_src emacs-lisp
+  (zb init-theme-hooks
+    (defvar after-enable-theme-hook nil
+      "Hook run after a theme is enabled via `enable-theme'.
+
+  `enable-theme' always enables the theme 'user' as well, and that
+  won't trigger this hook.
+
+  Note that `load-theme' also runs `enable-theme'.")
+
+    (defun run-after-enable-theme-hook (theme)
+      "Run `after-enable-theme-hook'."
+      (unless (equal theme 'user)
+        (run-hooks 'after-enable-theme-hook)))
+
+    (advice-add #'enable-theme :after #'run-after-enable-theme-hook))
 #+end_src
 
 * Lingual | 語言相關
@@ -872,31 +938,44 @@ With which the fonts are customized below:
 Make everything UTF-8.
 
 #+begin_src emacs-lisp
-  (prefer-coding-system 'utf-8)
-  (set-language-environment "UTF-8")
+  (zb init-encoding
+    (prefer-coding-system 'utf-8)
+    (set-language-environment "UTF-8"))
 #+end_src
 
 ** Rime Input Method
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'rime)
-  (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
-        default-input-method "rime"
-        rime-show-candidate 'posframe)
+  (zb init-rime
+    :pkg 'rime
+    (setq rime-user-data-dir (expand-file-name "rime" user-emacs-directory)
+          default-input-method "rime"
+          rime-show-candidate 'posframe))
+#+end_src
 
-  ;; Make the cursor orange when IM is active
-  (defcustom zy$-im-cursor-color "#f68a06"
-    "Default cursor color if an input method is active."
-    :type 'color
-    :group 'zyemacs)
-  (defvar zy--default-cursor-color (frame-parameter nil 'cursor-color)
-    "Default text cursor color.")
-  (defun zy--change-cursor-color-on-im ()
-    "Set cursor color depending IM state."
-    (set-cursor-color (if current-input-method
-                          zy$-im-cursor-color
-                        zy--default-cursor-color)))
-  (add-hook 'post-command-hook 'zy--change-cursor-color-on-im)
+** IM Cursor Color
+
+Change cursor color based on the current input method.
+
+#+begin_src emacs-lisp
+  (zb init-im-cursor-color
+    (defcustom zy$-im-cursor-color-alist
+      '(("rime" . "#f68a06"))
+      "Alist of (IM . COLOR) that specifies what cursor color should be
+  used for each input method."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defvar zy--default-cursor-color (frame-parameter nil 'cursor-color)
+      "Default text cursor color.")
+    (defun zy--change-cursor-color-on-im ()
+      "Set cursor color based on the current active input method."
+      (let* ((im-color (alist-get current-input-method
+                                  zy$-im-cursor-color-alist
+                                  zy--default-cursor-color
+                                  nil
+                                  'string-equal)))
+        (set-frame-parameter nil 'cursor-color im-color)))
+    (add-hook 'post-command-hook #'zy--change-cursor-color-on-im))
 #+end_src
 
 * Major Modes | 各主模式設置
@@ -904,15 +983,17 @@ Make everything UTF-8.
 ** Emacs Lisp
 
 #+begin_src emacs-lisp
-  (add-hook! 'emacs-lisp-mode-hook
+  (zb init-emacs-lisp
+    :hook-into 'emacs-lisp-mode-hook
     (setq-local fill-column 70))
 #+end_src
 
 ** LaTeX
 
 #+begin_src emacs-lisp
-  (straight-use-package 'auctex)
-  (with-eval-after-load 'tex
+  (zb init-latex
+    :pkg 'auctex
+    :after-load "tex"
     (add-to-list 'TeX-command-list '("XeLaTeX"
                                      "%`xelatex%(mode)%' --synctex=1%(mode)%' %t"
                                      TeX-run-TeX
@@ -976,38 +1057,52 @@ Make everything UTF-8.
 ** Markdown
 
 #+begin_src emacs-lisp
-  (zy-pkg! 'markdown-mode)
-  (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
-  (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-  (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
-
-  (with-eval-after-load 'markdown-mode
-    (zy-pkg! 'markdown-toc))
+  (zb init-markdown
+    :pkg '(markdown-mode markdown-toc)
+    (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+    (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+    (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode)))
 #+end_src
 
-** Org
-
-*** Basic Org
+** PDF
 
 #+begin_src emacs-lisp
-  (defcustom zy$-use-variable-pitch-p t
-    "Should ZyEmacs use `variable-pitch-mode' in certain modes."
-    :type 'boolean
-    :group 'zyemacs)
+  (zb init-pdf
+    :pkg 'pdf-tools
+    (pdf-loader-install)
+    :hook-into 'pdf-view-mode-hook
+    (display-line-numbers-mode -1)
+    (auto-revert-mode -1))
+#+end_src
 
-  (zy-pkg! '(org :type git :host github
-                 :repo "bzg/org-mode"))
-  (setq org-attach-id-dir "_org-att"
-        org-src-window-setup 'current-window
-        org-tags-column 0)
-  (add-hook! 'org-mode-hook
+** Verilog
+
+#+begin_src emacs-lisp
+  (zb init-verilog
+    :pkg 'verilog-mode)
+#+end_src
+
+* Org Mode | Org 模式
+
+** Basic Org
+
+#+begin_src emacs-lisp
+  (zb init-org
+    :pkg '(org :type git :host github
+               :repo "bzg/org-mode")
+    (setq org-attach-id-dir "_org-att"
+          org-src-window-setup 'current-window
+          org-tags-column 0)
+    :hook-into 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
     (when zy$-use-variable-pitch-p
       (variable-pitch-mode +1))
     (visual-line-mode +1))
 
-  (with-eval-after-load 'org
+  (zb init-org-after-load
+    :when (display-graphic-p)
+    :after-load 'org
     (defun zy--setup-org-faces ()
       "Setup custom faces for org-mode."
       (when (display-graphic-p)
@@ -1038,19 +1133,11 @@ Make everything UTF-8.
     (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
 
-*** GTD System
+** GTD System
 
 Enable the GTD system when ~zy$-gtd-path~ is valid.
 
 #+begin_src emacs-lisp
-  (defcustom zy$-use-gtd-p t
-    "Should ZyEmacs use the built-in GTD system.
-
-  If `zy$-gtd-path' does not exist as a directory, this variable
-  will be automatically set to nil."
-    :type 'boolean
-    :group 'zyemacs)
-
   (defcustom zy$-gtd-path (if zy$-use-zybox-p
                              (expand-file-name "org/org-gtd"
                                                zy$-zybox-path)
@@ -1122,7 +1209,7 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
      "c" 'org-capture))
 #+end_src
 
-*** Org-Appear
+** Org-Appear
 
 #+begin_src emacs-lisp
   (zy-pkg! 'org-appear)
@@ -1130,7 +1217,7 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
   (setq-default org-hide-emphasis-markers t)
 #+end_src
 
-*** Org-Superstar
+** Org-Superstar
 
 #+begin_src emacs-lisp
   (zy-pkg! 'org-superstar)
@@ -1154,7 +1241,7 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
       (zf-set-font zy$-font-mono nil nil face)))
 #+end_src
 
-*** Org-Journal
+** Org-Journal
 
 #+begin_src emacs-lisp
   (zy-pkg! 'org-journal)
@@ -1175,9 +1262,9 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
           (expand-file-name "org/org-journal" zy$-zybox-path)))
 #+end_src
 
-*** Org-Roam
+** Org-Roam
 
-**** Setup
+*** Setup
 
 Load org-roam when ~org-roam-directory~ is valid.
 
@@ -1200,21 +1287,4 @@ Load org-roam when ~org-roam-directory~ is valid.
 
   (when zy$-use-org-roam-p
     (zy-pkg! 'org-roam))
-#+end_src
-
-** PDF
-
-#+begin_src emacs-lisp
-  (zb init-pdf
-    :pkg 'pdf-tools
-    (pdf-loader-install)
-    (add-hook! 'pdf-view-mode-hook
-      (display-line-numbers-mode -1)
-      (auto-revert-mode -1)))
-#+end_src
-
-** Verilog
-
-#+begin_src emacs-lisp
-  (zy-pkg! 'verilog-mode)
 #+end_src

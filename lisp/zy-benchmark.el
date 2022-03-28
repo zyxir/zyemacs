@@ -1,6 +1,6 @@
 ;;; zy-benchmark.el --- Benchmarking utilities of ZyEmacs.
 
-(require 'zy-block)
+;; This file should be loaded by zy-block.el. Do not load this solely.
 
 
 ;; Definitions.

@@ -1,4 +1,4 @@
-;;; zy-lisp.el --- personal lisp utilities of Zyxir.
+;;; zy-lisp-utils.el --- personal lisp utilities of Zyxir.
 
 (defun zl-list-insert (newelt list &rest args)
   "Insert NEWELT into LIST according to ARGS.
@@ -62,6 +62,6 @@ Return the new cons cell represented by LIST."
      (t list-var))))
 
 
-(provide 'zy-lisp)
+(provide 'zy-lisp-utils)
 
-;;; end of zy-lisp.el
+;;; end of zy-lisp-utils.el
