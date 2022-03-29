@@ -1157,15 +1157,15 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
      "a" 'org-agenda
      "c" 'org-capture)
     ;; Lazy load other configuration.
-    :after-load '(org-agenda org-capture)
+    :after-load 'org
     (defvar zy-gtd-inbox-file
-      (expand-file-name "inbox.org" zy$-gtd-path)
+      (expand-file-name "inbox.org" zy-gtd-path)
       "The path of \"inbox.org\" of the GTD system.")
     (defvar zy-gtd-gtd-file
-      (expand-file-name "gtd.org" zy$-gtd-path)
+      (expand-file-name "gtd.org" zy-gtd-path)
       "The path of \"gtd.org\" of the GTD system.")
     (defvar zy-gtd-someday-file
-      (expand-file-name "someday.org" zy$-gtd-path)
+      (expand-file-name "someday.org" zy-gtd-path)
       "The path of \"someday.org\" of the GTD system.")
     (defvar zy-gtd-files
       `(,zy-gtd-inbox-file ,zy-gtd-gtd-file ,zy-gtd-someday-file)
