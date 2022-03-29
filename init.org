@@ -198,6 +198,18 @@ Personal information and top-level definitions.
       :group 'zyemacs))
 #+end_src
 
+** Macros
+
+Some macros I use in this configuration.
+
+#+begin_src emacs-lisp
+  (zb init-macros
+    (defmacro add-hook! (hook &rest body)
+      "Add a lambda function of BODY to the value of HOOK."
+      (declare (indent 1) (debug (form def-body)))
+      `(add-hook ,hook (lambda () ,@body))))
+#+end_src
+
 ** Package Management
 
 Manage package with straight.
@@ -260,15 +272,7 @@ Manage package with straight.
       ;; Wrap BODY around package conditional.
       `((when (zb-wrapper-pkg--handler ',name ,arg) ,@body)))
 
-    (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg)
-
-    (defmacro zy-pkg! (pkg &rest args)
-      "Install PKG with the default package manager of ZyEmacs.
-
-  Optionally, pass ARGS to the package manager.
-
-  Currently, the default package manager is straight.el."
-      `(straight-use-package ,pkg ,@args)))
+    (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg))
 #+end_src
 
 * General | 一般性設置
