@@ -1063,6 +1063,18 @@ Change cursor color based on the current input method.
     (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
     (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
     (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode)))
+
+  (zb init-markdown-after-load
+    :when (display-graphic-p)
+    :after-load 'markdown-mode
+    (defun zy--setup-markdown-faces ()
+      "Setup custom faces for markdown-mode."
+      ;; Setup code faces.
+      (dolist (face '(markdown-code-face
+                      markdown-inline-code-face))
+        (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face)))
+    (zy--setup-markdown-faces)
+    (add-hook 'after-enable-theme-hook #'zy--setup-markdown-faces))
 #+end_src
 
 ** PDF
@@ -1111,30 +1123,29 @@ Change cursor color based on the current input method.
     :after-load 'org
     (defun zy--setup-org-faces ()
       "Setup custom faces for org-mode."
-      (when (display-graphic-p)
-        ;; Headline faces.
-        (dolist (level (number-sequence 1 8))
-          (let ((face (intern (format "org-level-%d" level))))
-            (zf-set-font zy$-font-sans nil zy$-font-sans-cjk face)
-            (set-face-attribute
-             face
-             nil
-             :height
-             (string-to-number (format "1.%d" (- 4 level)))
-             :weight
-             (if (< level 3)
-                 'bold
-               'semi-bold))))
-        ;; Other faces.
-        (dolist (face '(org-block org-code org-verbatim))
-          (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face))
-        (set-face-attribute 'org-todo nil
-                            :foreground 'unspecified
-                            :background 'unspecified
-                            :weight 'bold
-                            :font (zf-pick-font "Sarasa Mono TC"
-                                                "Noto Sans"
-                                                "Arial"))))
+      ;; Headline faces.
+      (dolist (level (number-sequence 1 8))
+        (let ((face (intern (format "org-level-%d" level))))
+          (zf-set-font zy$-font-sans nil zy$-font-sans-cjk face)
+          (set-face-attribute
+           face
+           nil
+           :height
+           (string-to-number (format "1.%d" (- 4 level)))
+           :weight
+           (if (< level 3)
+               'bold
+             'semi-bold))))
+      ;; Other faces.
+      (dolist (face '(org-block org-code org-verbatim))
+        (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face))
+      (set-face-attribute 'org-todo nil
+                          :foreground 'unspecified
+                          :background 'unspecified
+                          :weight 'bold
+                          :font (zf-pick-font "Sarasa Mono TC"
+                                              "Noto Sans"
+                                              "Arial")))
     (zy--setup-org-faces)
     (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
