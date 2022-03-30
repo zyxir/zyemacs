@@ -663,17 +663,17 @@ Turn on ~yas-minor-mode~ in need.
 #+begin_src emacs-lisp
   (zb init-yasnippet
     :pkg '(yasnippet yasnippet-snippets)
-    (autoload 'yas-insert-snippet "yasnippet"
-      "Choose a snippet to expand, pop-up a list of choices according
-  to `yas-prompt-functions'.
-
-  With prefix argument NO-CONDITION, bypass filtering of snippets
-  by condition."
-      t)
+    ;; Setup yasnippet on key press.
+    (defun zy/yas-insert-snippet ()
+      "Load yasnippet, and run yas-insert-snippet."
+      (interactive)
+      (require 'yasnippet)
+      (require 'yasnippet-snippets)
+      (yas-minor-mode +1)
+      (yas-insert-snippet))
     (general-define-key
      :keymaps 'zy-leader-map
-     "s" 'yas-insert-snippet))
-
+     "s" #'zy/yas-insert-snippet))
 #+end_src
 
 * UI | 用戶界面
