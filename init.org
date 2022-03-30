@@ -997,6 +997,8 @@ Change cursor color based on the current input method.
 
 ** LaTeX
 
+This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijing.ksyun.com/attachment/9ff9efaf747469424f48741629013db1][this document]].
+
 #+begin_src emacs-lisp
   (zb init-latex
     :pkg 'auctex
@@ -1007,11 +1009,12 @@ Change cursor color based on the current input method.
                                      nil
                                      t))
     (setq TeX-auto-save t
-          TeX-parse-self t
-          TeX-show-compilation t
           TeX-command-force "XeLaTeX"
+          TeX-parse-self t
+          TeX-save-query nil
           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
-    (setq-default TeX-master nil
+    (setq-default TeX-engine 'xetex
+                  TeX-master nil
                   font-latex-fontify-script nil
                   TeX-PDF-mode t)
 
@@ -1022,8 +1025,16 @@ Change cursor color based on the current input method.
     (add-hook 'TeX-after-compilation-finished-functions
               #'TeX-revert-document-buffer)
 
+    ;; Run `TeX-revert-document-buffer' interactively, as the hook is
+    ;; unusable now (2022-03-30).
+
+    (defun zy/TeX-revert-document-buffer ()
+      "Revert the current TeX preview buffer."
+      (interactive)
+      (TeX-revert-document-buffer (TeX-active-master (TeX-output-extension))))
+
     ;; Find master file automatically.
-    (defun TeX-find-master-file ()
+    (defun zy-TeX-find-master-file ()
       "Finds the master file for TeX/LaTeX project by searching for
     'main.tex' in the good directories"
       (let (foundFiles (currPath (expand-file-name "./")) foundFile)
@@ -1035,30 +1046,11 @@ Change cursor color based on the current input method.
          (file-exists-p foundFile)
          (setq foundFile (file-name-sans-extension foundFile))
          foundFile)))
-    (defun TeX-set-master-file (&optional ignore1 ignore2 ignore3)
+    (defun zy-TeX-set-master-file (&optional ignore1 ignore2 ignore3)
       "Finds the master file by means of TeX-find-master-file and
     set TeX-master to it value"
-      (setq TeX-master (or (TeX-find-master-file) TeX-master)))
-    (add-hook 'TeX-mode-hook 'TeX-set-master-file)
-
-    ;; From URL `https://emacs.stackexchange.com/questions/38258/close-latex-compilation-window-when-successful'
-    (setq TeX-buf-close-at-warnings-only t)
-    (defun my-tex-close-TeX-buffer (_output)
-      "Close compilation buffer if there are no errors.
-  Hook this function into `TeX-after-compilation-finished-functions'."
-      (let ((buf (TeX-active-buffer)))
-        (when (buffer-live-p buf)
-          (with-current-buffer buf
-            (when (progn (TeX-parse-all-errors)
-                         (or
-                          (and TeX-buf-close-at-warnings-only
-                               (null (cl-assoc 'error TeX-error-list)))
-                          (null TeX-error-list)))
-              (cl-loop for win in (window-list)
-                       if (eq (window-buffer win) (current-buffer))
-                       do (delete-window win)))))))
-
-    (add-hook 'TeX-after-compilation-finished-functions #'my-tex-close-TeX-buffer))
+      (setq TeX-master (or (zy-TeX-find-master-file) TeX-master)))
+    (add-hook 'TeX-mode-hook 'zy-TeX-set-master-file))
 #+end_src
 
 ** Markdown
