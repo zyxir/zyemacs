@@ -344,9 +344,15 @@ Key-bindings are managed via ~general.el~, and ~which-key~ provides key hints. T
       "The leader key of ZyEmacs."
       :type 'key
       :group 'zyemacs)
+    (defcustom zy$-leader-key-alternatives '("M-`")
+      "A list of alternative leader keys of ZyEmacs."
+      :type 'sexp
+      :group 'zyemacs)
     (define-prefix-command 'zy-leader-map)
     (general-define-key zy$-leader-key 'zy-leader-map
                         "M-z" 'back-to-indentation)
+    (dolist (key zy$-leader-key-alternatives)
+      (general-define-key key 'zy-leader-map))
 
     ;; Disable C-z for GUI.
 
