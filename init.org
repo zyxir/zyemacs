@@ -654,6 +654,28 @@ Zybox is the collection of my personal files.
         (customize-save-variable 'zy$-use-zybox-p nil))))
 #+end_src
 
+* Text Editing | 文本編輯
+
+** Yasnippet
+
+Turn on ~yas-minor-mode~ in need.
+
+#+begin_src emacs-lisp
+  (zb init-yasnippet
+    :pkg '(yasnippet yasnippet-snippets)
+    (autoload 'yas-insert-snippet "yasnippet"
+      "Choose a snippet to expand, pop-up a list of choices according
+  to `yas-prompt-functions'.
+
+  With prefix argument NO-CONDITION, bypass filtering of snippets
+  by condition."
+      t)
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "s" 'yas-insert-snippet))
+
+#+end_src
+
 * UI | 用戶界面
 
 ** Basic UI Settings
@@ -883,7 +905,8 @@ R
                        (super-save-mode nil super-save)
                        (valign-mode nil valign)
                        (visual-line-mode nil simple)
-                       (which-key-mode nil which-key))))
+                       (which-key-mode nil which-key)
+                       (yas-minor-mode nil yasnippet))))
 #+end_src
 
 ** Theme
