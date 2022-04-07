@@ -1,4 +1,4 @@
-;;; zy-wc3color.el --- WC3 text coloring functions.
+;;; zy-wc3.el --- WC3 map-making helper functions.
 
 (defun zy-wc3colorize (text color)
   "Wrap TEXT in COLOR code."
@@ -60,4 +60,4 @@ MAXLVL is the maximum level of the ability."
 			 "|n"
 			 (zy-wc3colorize comment color-comment)))))
 
-;;; end of zy-wc3color.el
+;;; end of zy-wc3.el
