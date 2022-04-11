@@ -1333,5 +1333,16 @@ Load org-roam when ~org-roam-directory~ is valid.
             (expand-file-name "org/org-roam" zy$-zybox-path))
            (t nil)))
     :when org-roam-directory
-    :pkg 'org-roam)
+    :pkg 'org-roam
+    (define-prefix-command 'zy-leader-roam-map)
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "r" 'zy-leader-roam-map)
+    (general-define-key
+     :keymaps 'zy-leader-roam-map
+     "i" 'org-roam-node-insert
+     "f" 'org-roam-node-find
+     "c" 'org-roam-capture)
+    :after-load 'org-roam
+    (org-roam-db-autosync-mode))
 #+end_src
