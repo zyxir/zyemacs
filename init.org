@@ -972,6 +972,14 @@ Make everything UTF-8.
     (prefer-coding-system 'utf-8)
     (set-language-environment "UTF-8"))
 #+end_src
+** OpenCC
+
+[[https://github.com/BYVoid/OpenCC][OpenCC]] is a tool and a library for conversion between traditional and simplified Chinese. [[https://github.com/xuchunyang/emacs-opencc][opencc.el]] integrate OpenCC into Emacs.
+
+#+begin_src emacs-lisp
+  (zb init-opencc
+    :pkg 'opencc)
+#+end_src
 
 ** Rime Input Method
 
