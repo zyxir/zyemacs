@@ -36,8 +36,8 @@ COMMENT is the comment of the ability.
 
 MAXLVL is the maximum level of the ability."
   (let ((result desc)
-	(color-alt "bfff81")
-	(color-param "ffcc00")
+	(color-alt "bfff82")
+	(color-param "ecce87")
 	(color-comment "00ebff"))
     (setq result (concat result
 			 (zy-wc3colorize alt color-alt)
