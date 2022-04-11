@@ -1342,7 +1342,9 @@ Load org-roam when ~org-roam-directory~ is valid.
      :keymaps 'zy-leader-roam-map
      "i" 'org-roam-node-insert
      "f" 'org-roam-node-find
-     "c" 'org-roam-capture)
+     "c" 'org-roam-capture
+     "a" 'org-roam-alias-add
+     "l" 'org-roam-buffer-toggle)
     :after-load 'org-roam
     (org-roam-db-autosync-mode))
 #+end_src

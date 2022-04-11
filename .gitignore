@@ -4,6 +4,7 @@ early-init.el
 init.el
 loaddefs.el
 straight
+org-roam.db
 
 # Local files
 .org-id-locations
