@@ -963,6 +963,21 @@ The ~after-enable-theme-hook~ is used to redefine faces after a theme reload.
 #+end_src
 
 * Lingual | 語言相關
+** Symbol Insersion
+
+Easily insert special symbols, such as the "zero width space".
+
+#+begin_src emacs-lisp
+  (zb init-sym-ins
+    (defun zy/insert-zero-width-space ()
+      "Insert a zero-width space at point."
+      (interactive)
+      (insert #x200b))
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "8 s" #'zy/insert-zero-width-space))
+#+end_src
+
 ** Encoding
 
 Make everything UTF-8.
@@ -972,6 +987,7 @@ Make everything UTF-8.
     (prefer-coding-system 'utf-8)
     (set-language-environment "UTF-8"))
 #+end_src
+
 ** OpenCC
 
 [[https://github.com/BYVoid/OpenCC][OpenCC]] is a tool and a library for conversion between traditional and simplified Chinese. [[https://github.com/xuchunyang/emacs-opencc][opencc.el]] integrate OpenCC into Emacs.
