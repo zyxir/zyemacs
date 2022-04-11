@@ -1244,7 +1244,26 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
                               ("DONE" .
                                (:inherit org-todo :foreground "#33691E"))
                               ("CANCELED" .
-                               (:inherit org-todo :foreground "#757575")))))
+                               (:inherit org-todo :foreground "#757575"))))
+    ;; Per-project TODO.
+    (defvar zy-project-todo-filenames
+      '("TODO.org" "_zyxir_TODO.org")
+      "Possible TODO filenames for projects.")
+    (dolist (proj project--list)
+      (let* ((proj-path (car proj))
+             proj-todo
+             proj-todo-tmp
+             (proj-todo-filenames zy-project-todo-filenames))
+        (while proj-todo-filenames
+          (setq proj-todo-tmp (expand-file-name
+                               (car proj-todo-filenames)
+                               proj-path))
+          (if (file-exists-p proj-todo-tmp)
+              (setq proj-todo proj-todo-tmp
+                    proj-todo-filenames nil)
+            (setq proj-todo-filenames (cdr proj-todo-filenames))))
+        (when proj-todo
+          (push proj-todo org-agenda-files)))))
 #+end_src
 
 ** Org-Superstar
