@@ -1152,7 +1152,7 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
            face
            nil
            :height
-           (string-to-number (format "1.%d" (- 4 level)))
+           (string-to-number (format "1.%d" (max (- 4 level) 0)))
            :weight
            (if (< level 3)
                'bold
@@ -1246,24 +1246,22 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
                               ("CANCELED" .
                                (:inherit org-todo :foreground "#757575"))))
     ;; Per-project TODO.
-    (defvar zy-project-todo-filenames
-      '("TODO.org" "_zyxir_TODO.org")
+    (require 'project)
+    (when (equal project--list 'unset)
+      (project--read-project-list))
+    (defvar zy-project-todo-regexp
+      "^.*TODO\\.org$"
       "Possible TODO filenames for projects.")
     (dolist (proj project--list)
       (let* ((proj-path (car proj))
-             proj-todo
-             proj-todo-tmp
-             (proj-todo-filenames zy-project-todo-filenames))
-        (while proj-todo-filenames
-          (setq proj-todo-tmp (expand-file-name
-                               (car proj-todo-filenames)
-                               proj-path))
-          (if (file-exists-p proj-todo-tmp)
-              (setq proj-todo proj-todo-tmp
-                    proj-todo-filenames nil)
-            (setq proj-todo-filenames (cdr proj-todo-filenames))))
-        (when proj-todo
-          (push proj-todo org-agenda-files)))))
+             proj-todos)
+        (setq proj-todos (directory-files
+                          proj-path
+                          'full
+                          zy-project-todo-regexp
+                          'nosort))
+        (when proj-todos
+          (push (car proj-todos) org-agenda-files)))))
 #+end_src
 
 ** Org-Superstar
