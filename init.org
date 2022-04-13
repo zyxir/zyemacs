@@ -387,7 +387,7 @@ Setup Vertico and other tools.
     (marginalia-mode +1)
 
     ;; Setup Orderless.
-    (setq completion-styles '(orderless partial-completion)
+    (setq completion-styles '(substring orderless basic)
           completion-category-defaults nil
           completion-category-overrides '((file (styles partial-completion))))
 
@@ -1154,7 +1154,7 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
     :pkg 'verilog-mode)
 #+end_src
 
-* Org Mode | Org 模式
+* Org Related | Org 相關
 
 ** Basic Org
 
@@ -1385,4 +1385,113 @@ Load org-roam when ~org-roam-directory~ is valid.
      "l" 'org-roam-buffer-toggle)
     :after-load 'org-roam
     (org-roam-db-autosync-mode))
+#+end_src
+
+* Features | 功能
+
+** Bibliography Management
+
+Text-based bibliography management.
+
+*** Top Level
+
+Some top level definitions.
+
+#+begin_src emacs-lisp
+  (zb init-bib
+    :when zy$-use-zybox-p
+    (defvar zy-bib-dir (expand-file-name "library/bibliography"
+                                         zy$-zybox-path)
+      "Where all bibliography files are located.")
+    (defvar zy-bib-files-relative '("references.bib")
+      "Names of bibliography files, relative to `zy-bib-dir'.")
+    (defvar zy-bib-files (mapcar
+                          (lambda (file)
+                            (expand-file-name file
+                                              zy-bib-dir))
+                          zy-bib-files-relative)
+      "Names of bibliography files.")
+    (defvar zy-bib-pdf-dir (expand-file-name "files"
+                                             zy-bib-dir)
+      "Where all bibliography PDFs are located.")
+    (defvar zy-bib-notes (expand-file-name "notes.org"
+                                           zy-bib-dir)
+      "The notes file of bibliography."))
+#+end_src
+
+*** Citar
+
+#+begin_src emacs-lisp
+  (zb init-citar
+    :when zy$-use-zybox-p
+    :pkg 'citar
+    (setq citar-bibliography zy-bib-files)
+    (general-define-key
+     "C-c c" #'citar-insert-citation
+     "C-c C" #'citar-insert-preset))
+#+end_src
+
+*** Ebib
+
+Ebib provides an extensive UI to manage ~.bib~ files.
+
+#+begin_src emacs-lisp
+  (zb init-ebib
+    :pkg 'ebib
+    :when zy$-use-zybox-p
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "b" 'ebib)
+    (setq ebib-use-timestamp t
+          ebib-preload-bib-files zy-bib-files
+          ebib-file-search-dirs `(,(expand-file-name
+                                    "files"
+                                    zy-bib-dir))
+          ebib-bibtex-dialect 'biblatex
+          ebib-uniquify-keys t
+          ebib-file-associations nil
+          ebib-notes-storage 'multiple-notes-per-file
+          ebib-notes-use-single-file (expand-file-name "notes.org"
+                                                       zy-bib-dir)
+          ebib-notes-template "** %T\n:PROPERTIES:\n%K\n:END:\n%%?\n"
+          ebib-import-directory (cond
+                                 ((zy-wsl-p)
+                                  "/mnt/c/Users/zyxir/Downloads/")
+                                 (zy-*linux*
+                                  "~/Downloads/")
+                                 (zy-*windows*
+                                  "C:\\Users\\zyxir\\Downloads\\")
+                                 (t nil))))
+#+end_src
+
+*** BibTeX
+
+The BibTeX module in Emacs is used by Ebib to generate entry keys.
+
+#+begin_src emacs-lisp
+  (zb init-bibtex
+    :after-load 'bibtex
+    (setq bibtex-files zy-bib-files
+          bibtex-autokey-year-length 4
+          bibtex-autokey-name-year-separator "-"
+          bibtex-autokey-year-title-separator "-"
+          bibtex-autokey-titleword-separator "-"
+          bibtex-autokey-titlewords 2
+          bibtex-autokey-titlewords-stretch 1
+          bibtex-autokey-titleword-length 5))
+#+end_src
+
+*** Biblio
+
+Biblio gathers bibliographic references from various sources conveniently. It is used by Ebib as well.
+
+#+begin_src emacs-lisp
+  (zb init-biblio
+    :pkg 'biblio
+    :after-load 'biblio-core
+    (require 'ebib-biblio)
+    (setq biblio-bibtex-use-autokey t)
+    (general-define-key
+     :keymaps 'biblio-selection-mode-map
+     "e" #'ebib-biblio-selection-import))
 #+end_src
