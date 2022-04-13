@@ -719,7 +719,8 @@ Turn on ~yas-minor-mode~ in need.
               (lambda ()
                 (let ((inhibit-message t))
                   (delete-other-windows))
-                (hl-line-mode 'toggle)))
+                (hl-line-mode 'toggle)
+                (variable-pitch-mode 'toggle)))
     :after-load '(darkroom init-frame-size)
     (defun zy-darkroom-switch-size (&optional frame)
       "Switch FRAME size for `darkroom-mode'.
@@ -833,10 +834,6 @@ With which the fonts are customized here:
     (defcustom zy$-font-size-vp 18
       "Default font size for the 'variable-pitch' face."
       :type 'integer
-      :group 'zyemacs-ui)
-    (defcustom zy$-use-variable-pitch-p t
-      "Should ZyEmacs use `variable-pitch-mode' in certain modes."
-      :type 'boolean
       :group 'zyemacs-ui)
 
     ;; Set monospace font as default.
@@ -1168,8 +1165,6 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
     :hook-into 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
-    (when zy$-use-variable-pitch-p
-      (variable-pitch-mode +1))
     (visual-line-mode +1))
 
   (zb init-org-appear
