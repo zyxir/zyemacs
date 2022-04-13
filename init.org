@@ -686,8 +686,7 @@ Turn on ~yas-minor-mode~ in need.
       (yas-minor-mode +1)
       (yas-insert-snippet))
     (general-define-key
-     :keymaps 'zy-leader-map
-     "s" #'zy/yas-insert-snippet))
+     "C-c s" #'zy/yas-insert-snippet))
 #+end_src
 
 * UI | 用戶界面
@@ -713,7 +712,7 @@ Turn on ~yas-minor-mode~ in need.
     (setq darkroom-margins 0.1
           darkroom-text-scale-increase 1)
     (general-define-key
-     :keymaps 'zy-leader-manage-map
+     :keymaps 'zy-leader-map
      "d" #'darkroom-mode)
     (add-hook 'darkroom-mode-hook
               (lambda ()
