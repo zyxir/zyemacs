@@ -330,11 +330,21 @@ BODY will be wraped in a lambda function before added to ARG."
 	(add-hook hook (lambda () ,@body))))))
 
 
+;; Keyword :enable
+
+(defun zb-wrapper-enable (name arg body)
+  "Enable BODY if ARG is non-nil."
+  (if arg
+      body
+    nil))
+
+
 ;; Setup keywords.
 
 ;; Setup flag keywords in order: the early a flag keyword is
 ;; defined, the outer it will be wrapped.
 
+(zb-define-keyword ':enable 'flag #'zb-wrapper-enable)
 (zb-define-keyword ':protect 'flag #'zb-wrapper-protect)
 (zb-define-keyword ':provide 'flag #'zb-wrapper-provide)
 

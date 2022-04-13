@@ -136,7 +136,8 @@ I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a sim
 #+begin_src emacs-lisp
   (require 'zy-block)
   (setq zb-global-flag-alist
-        '((:provide . t)
+        '((:enable . t)
+          (:provide . t)
           (:protect . t)))
 
   ;; With "--zy-benchmark" option, enable benchmark for all zy-blocks.
@@ -378,7 +379,8 @@ Setup Vertico and other tools.
 
 #+begin_src emacs-lisp
   (zb init-minibuffer
-    :pkg '(vertico savehist marginalia orderless consult)
+    :pkg '(vertico savehist marginalia orderless
+                   consult embark embark-consult)
     ;; Enable modes.
     (vertico-mode +1)
     (savehist-mode +1)
@@ -458,7 +460,19 @@ Setup Vertico and other tools.
     (general-define-key
      :keymaps 'minibuffer-local-map
      "M-s" 'consult-history
-     "M-r" 'consult-history))
+     "M-r" 'consult-history)
+
+    ;; Embark settings.
+
+    (general-define-key
+     "C-." #'embark-act
+     "C-;" #'embark-dwim
+     "C-h B" #'embark-bindings)
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none))))
+    (add-hook 'embark-collect-mode-hook 'consult-preview-at-point-mode))
 #+end_src
 
 ** Native Settings
