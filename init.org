@@ -1482,7 +1482,7 @@ Biblio gathers bibliographic references from various sources conveniently. It is
 #+begin_src emacs-lisp
   (zb init-biblio
     :pkg 'biblio
-    :after-load 'biblio-core
+    :after-load 'ebib
     (require 'ebib-biblio)
     (setq biblio-bibtex-use-autokey t)
     (general-define-key
