@@ -175,9 +175,16 @@ Personal information and top-level definitions.
 
     (defun zy-wsl-p ()
       "Return t if ZyEmacs is run on WSL."
-      (equal 0
-             (shell-command
-              "grep -q -e \"[Mm]icrosoft\" /proc/version")))
+      (unless (boundp 'zy--*wsl*)
+        (defvar zy--*wsl*
+          (equal
+           0
+           (shell-command
+            "grep -q -e \"[Mm]icrosoft\" /proc/version"))
+          "If ZyEmacs is run on WSL.
+
+  Do not use this variable directly. Use `zy-wsl-p' instead."))
+      zy--*wsl*)
 
     ;; Swtiches of ZyEmacs features.
 
@@ -1198,9 +1205,9 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
                           :weight 'bold
                           :font (zf-pick-font "Sarasa Mono TC"
                                               "Noto Sans"
-                                              "Arial")))
-    (zy--setup-org-faces)
-    (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
+                                              "Arial"))))
+    ;; (zy--setup-org-faces)
+    ;; (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
 
 ** GTD System
