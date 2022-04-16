@@ -67,13 +67,14 @@ If it is, return its type. Otherwise, return nil.
 
 Additionally, if SEXP is '--eol--', which is used by zb-parse to
 indicate the end of the parsed list, the function will return
-itself."
-  (if (equal sexp '--eol--)
-      sexp
-    (when (and (symbolp sexp)
-	       (equal (substring (symbol-name sexp) 0 1) ":")
-	       (member sexp zb-keyword-list))
-      (plist-get zb-keyword-type-plist sexp))))
+'--eol--'."
+  (cond
+   ((equal sexp '--eol--) '--eol--)
+   ((and (symbolp sexp)
+	 (equal (substring (symbol-name sexp) 0 1) ":")
+	 (member sexp zb-keyword-list))
+    (plist-get zb-keyword-type-plist sexp))
+   (t nil)))
 
 
 ;; Debugging utilities.
@@ -100,7 +101,7 @@ EX is (ERROR-SYMBOL . SIGNAL-DATA) representing an error."
     (lwarn (format "zb %s" name) level ex-str)))
 
 
-;; Keyword parsing.
+;; Keyword parsing and form formatting.
 
 (defun zb-parse (name body)
   "Parse BODY, return two plists (KPLIST FPLIST).
@@ -127,6 +128,15 @@ NAME is just used for proper warning display."
       (setq newobj (car body)
 	    newkwp (zb-keyword-p newobj)
 	    body (cdr body))
+      ;; If `newobj' is a sub-block, format it.
+      (when (and (consp newobj)
+		 (zb-keyword-p (car newobj)))
+	(setq newobj (zb-format name newobj 'noflags))
+	(setq newobj
+	      (cond
+	       ((symbolp newobj) newobj)
+	       ((cdr newobj) (append '(progn) newobj))
+	       (t (car newobj)))))
       ;; Parsing argument based on the current keyword.
       (cond
        ;; If there is no active keyword, but the new object is still
@@ -194,12 +204,13 @@ NAME is just used for proper warning display."
     ;; Return the two parsed plists.
     `(,kplist ,fplist)))
 
-
-;; The `zb' macro.
+(defun zb-format (name body &optional noflags)
+  "Return a formatted form  of BODY.
 
-(defmacro zb (name &rest body)
-  "Define a block of code as a zy-block."
-  (declare (indent 1))
+BODY will firstly be parsed with `zb-parse', then formatted with
+the keyword functions. NAME is just used for warning issuing.
+
+If NOFLAGS is non-nil, ignore flag keywords."
   (let* ((parse-result (zb-parse name body))
 	 (kplist (car parse-result))
 	 (fplist (cadr parse-result))
@@ -218,29 +229,40 @@ NAME is just used for proper warning display."
 				    keyword)
 			 name arg body)
 	      (append arg body))))
-    ;; Add global flag keywords.
-    (dolist (fd zb-global-flag-alist)
-      (let ((flag (car fd))
-	    (default (cdr fd)))
-	(when (not (member flag fplist))
-	  (push default fplist)
-	  (push flag fplist))))
-    ;; Apply flag keywords in order.
-    (dolist (flag zb-flag-list)
-      (when (member flag fplist)
-	(setq arg (plist-get fplist flag)
-	      body
-	      (funcall (plist-get zb-keyword-func-plist
-				  flag)
-		       name arg body))))
-    ;; Construct the final body.
-    (cond
-     ((symbolp body)
-      `(prog1 ',name ,body))
-     ((not (cdr body))
-      `(prog1 ',name ,(car body)))
-     (t
-      (append `(prog1 ',name) body)))))
+    (unless noflags
+      ;; Add global flag keywords.
+      (dolist (fd zb-global-flag-alist)
+	(let ((flag (car fd))
+	      (default (cdr fd)))
+	  (when (not (member flag fplist))
+	    (push default fplist)
+	    (push flag fplist))))
+      ;; Apply flag keywords in order.
+      (dolist (flag zb-flag-list)
+	(when (member flag fplist)
+	  (setq arg (plist-get fplist flag)
+		body
+		(funcall (plist-get zb-keyword-func-plist
+				    flag)
+			 name arg body)))))
+    body))
+
+
+;; The `zb' macro.
+
+(defmacro zb (name &rest body)
+  "Define a block of code as a zy-block."
+  (declare (indent 1))
+  ;; Format body.
+  (setq body (zb-format name body))
+  ;; Wrap body into `prog1' with `name'.
+  (cond
+   ((symbolp body)
+    `(prog1 ',name ,body))
+   ((not (cdr body))
+    `(prog1 ',name ,(car body)))
+   (t
+    (append `(prog1 ',name) body))))
 
 
 ;; Keyword :protect.
@@ -339,6 +361,15 @@ BODY will be wraped in a lambda function before added to ARG."
     nil))
 
 
+;; Keyword :sub-block
+
+(defun zb-wrapper-sub-block (name arg body)
+  "Return ARG and BODY.
+
+This keyword is just a indicator of a sub-block."
+  (append arg body))
+
+
 ;; Setup keywords.
 
 ;; Setup flag keywords in order: the early a flag keyword is
@@ -355,6 +386,7 @@ BODY will be wraped in a lambda function before added to ARG."
 (zb-define-keyword ':after-load 'single #'zb-wrapper-after-load)
 (zb-define-keyword ':idle 'single #'zb-wrapper-idle)
 (zb-define-keyword ':hook-into 'single #'zb-wrapper-hook-into)
+(zb-define-keyword ':sub-block 'multiple #'zb-wrapper-sub-block)
 
 ;; Setup zy-benchmark.el.
 
