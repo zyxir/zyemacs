@@ -1073,7 +1073,6 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
                                      nil
                                      t))
     (setq TeX-auto-save t
-          TeX-command-force "XeLaTeX"
           TeX-parse-self t
           TeX-save-query nil
           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
