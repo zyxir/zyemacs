@@ -1088,14 +1088,6 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
     (add-hook 'TeX-after-compilation-finished-functions
               #'TeX-revert-document-buffer)
 
-    ;; Run `TeX-revert-document-buffer' interactively, as the hook is
-    ;; unusable now (2022-03-30).
-
-    (defun zy/TeX-revert-document-buffer ()
-      "Revert the current TeX preview buffer."
-      (interactive)
-      (TeX-revert-document-buffer (TeX-active-master (TeX-output-extension))))
-
     ;; Find master file automatically.
     (defun zy-TeX-find-master-file ()
       "Finds the master file for TeX/LaTeX project by searching for
@@ -1144,9 +1136,14 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
   (zb init-pdf
     :pkg 'pdf-tools
     (pdf-loader-install)
-    :hook-into 'pdf-view-mode-hook
-    (display-line-numbers-mode -1)
-    (auto-revert-mode -1))
+    (:hook-into 'pdf-view-mode-hook
+                (display-line-numbers-mode -1)
+                (auto-revert-mode -1))
+    (:after-load 'pdf-view
+                 (general-define-key
+                  :keymaps 'pdf-view-mode-map
+                  ;; Less confirmation on buffer revert.
+                  "g" #'revert-buffer-quick)))
 #+end_src
 
 ** Verilog
