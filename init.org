@@ -1137,6 +1137,7 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
           TeX-save-query nil
           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
     (setq-default TeX-engine 'xetex
+                  TeX-command-default "XeLaTeX"
                   TeX-master nil
                   font-latex-fontify-script nil
                   TeX-PDF-mode t)
