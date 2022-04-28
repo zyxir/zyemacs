@@ -734,14 +734,22 @@ Turn on ~yas-minor-mode~ in need.
     :pkg '(yasnippet
            (yasnippet-snippets :type git :host github
                                :repo "zyxir/yasnippet-snippets"))
-    ;; Enable yasnippet in certain modes.
-    (setq zy-yas-hook-list '(latex-mode-hook))
-    (defun zy-enable-yas-minor-mode () (yas-minor-mode +1))
-    (dolist (hook zy-yas-hook-list)
-      (add-hook hook #'zy-enable-yas-minor-mode))
+    ;; Enable yasnippet on need.
+    (defun zy--yas-insert-snippet ()
+      "Enable `yas-global-mode', and insert a snippet.
+
+  The first time this function is called, it enables
+  `yas-global-mode', bounds the keybinding of itself to
+  `yas-insert-snippet', and insert a snippet like
+  `yas-insert-snippet' do."
+      (interactive)
+      (yas-global-mode +1)
+      (general-define-key
+       [remap zy--yas-insert-snippet] #'yas-insert-snippet)
+      (yas-insert-snippet))
     ;; Snippet shortcut.
     (general-define-key
-     "C-c s" #'yas-insert-snippet))
+     "C-c s" #'zy--yas-insert-snippet))
 #+end_src
 
 ** Phi-Search
