@@ -11,6 +11,8 @@ org-roam.db
 auto-save-list
 bookmarks
 custom.el
+eln-cache
+eshell
 history
 org-persist
 places
@@ -18,7 +20,4 @@ projects
 recentf
 server
 transient
-
-# Cache
-eln-cache
 url
