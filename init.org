@@ -529,7 +529,6 @@ Register user-defined project directories.
 
 #+begin_src emacs-lisp
   (zb init-proj
-    :after-load 'init-zybox
     ;; Preload project directories.
 
     (defcustom zy$-project-parent-dirs nil
@@ -548,10 +547,11 @@ Register user-defined project directories.
 
     ;; If Zybox is available, add its projects.
 
-    (when zy$-use-zybox-p
-      (add-to-list 'zy$-project-parent-dirs
-                   (expand-file-name "projects"
-                                     zy$-zybox-path)))
+    (with-eval-after-load 'init-zybox
+      (when zy$-use-zybox-p
+        (add-to-list 'zy$-project-parent-dirs
+                     (expand-file-name "projects"
+                                       zy$-zybox-path))))
 
     ;; Project updater.
 
@@ -731,17 +731,17 @@ Turn on ~yas-minor-mode~ in need.
 
 #+begin_src emacs-lisp
   (zb init-yasnippet
-    :pkg '(yasnippet yasnippet-snippets)
-    ;; Setup yasnippet on key press.
-    (defun zy/yas-insert-snippet ()
-      "Load yasnippet, and run yas-insert-snippet."
-      (interactive)
-      (require 'yasnippet)
-      (require 'yasnippet-snippets)
-      (yas-minor-mode +1)
-      (yas-insert-snippet))
+    :pkg '(yasnippet
+           (yasnippet-snippets :type git :host github
+                               :repo "zyxir/yasnippet-snippets"))
+    ;; Enable yasnippet in certain modes.
+    (setq zy-yas-hook-list '(latex-mode-hook))
+    (defun zy-enable-yas-minor-mode () (yas-minor-mode +1))
+    (dolist (hook zy-yas-hook-list)
+      (add-hook hook #'zy-enable-yas-minor-mode))
+    ;; Snippet shortcut.
     (general-define-key
-     "C-c s" #'zy/yas-insert-snippet))
+     "C-c s" #'yas-insert-snippet))
 #+end_src
 
 ** Phi-Search
