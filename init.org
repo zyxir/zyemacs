@@ -895,6 +895,19 @@ With which the fonts are customized here:
       "Serif font for CJK characters and punctuations."
       :type 'sexp
       :group 'zyemacs-ui)
+    (defcustom zy$-font-title (zf-pick-font
+                               "Roboto Slab"
+                               "sans-serif")
+      "Font used for titles."
+      :type 'sexp
+      :group 'zyemacs-ui)
+    (defcustom zy$-font-title-cjk (zf-pick-font
+                                   "Sarasa Mono HC"
+                                   "Microsoft YaHei"
+                                   "sans-serif")
+      "CJK font used for titles."
+      :type 'sexp
+      :group 'zyemacs-ui)
     (defcustom zy$-font-size 16
       "Default font size for the UI."
       :type 'integer
@@ -1245,7 +1258,7 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
       ;; Headline faces.
       (dolist (level (number-sequence 1 8))
         (let ((face (intern (format "org-level-%d" level))))
-          (zf-set-font zy$-font-sans nil zy$-font-sans-cjk face)
+          (zf-set-font zy$-font-title nil zy$-font-title-cjk face)
           (set-face-attribute
            face
            nil
@@ -1262,9 +1275,7 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
                           :foreground 'unspecified
                           :background 'unspecified
                           :weight 'bold
-                          :font (zf-pick-font "Sarasa Mono TC"
-                                              "Noto Sans"
-                                              "Arial")))
+                          :font zy$-font-sans))
     (zy--setup-org-faces)
     (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
