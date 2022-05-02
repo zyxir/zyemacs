@@ -854,32 +854,28 @@ With which the fonts are customized here:
     :when (display-graphic-p)
     :hook-into 'after-init-hook
     (defcustom zy$-font-mono (zf-pick-font
-                              "Sarasa Mono Slab TC"
-                              "Iosevka Term Slab"
+                              "Sarasa Mono HC"
                               "Consolas"
                               "monospace")
       "Monospace font. Used on most occasions."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-mono-cjk (zf-pick-font
-                                  "GenYoGothic TW"
-                                  "Sarasa Mono Slab TC"
+                                  "Sarasa Mono HC"
                                   "Microsoft YaHei"
                                   "monospace")
       "Monospace font for CJK characters and punctuations."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-sans (zf-pick-font
-                              "Roboto Slab"
-                              "Noto Sans"
+                              "Roboto"
                               "Calibri"
                               "sans-serif")
       "Sans-serif font. Used occasionally."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-sans-cjk (zf-pick-font
-                                  "GenYoGothic TW"
-                                  "Sarasa Mono Slab TC"
+                                  "Sarasa Mono HC"
                                   "Microsoft YaHei"
                                   "sans-serif")
       "Sans-serif font for CJK characters and punctuations."
@@ -887,15 +883,13 @@ With which the fonts are customized here:
       :group 'zyemacs-ui)
     (defcustom zy$-font-serif (zf-pick-font
                                "IBM Plex Serif"
-                               "Noto Serif"
                                "Times New Roman"
                                "serif")
       "Serif font. Used occasionally."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-serif-cjk (zf-pick-font
-                                   "GenYoMin TW"
-                                   "Noto Serif CJK TC"
+                                   "Source Han Serif HC"
                                    "STSong"
                                    "serif")
       "Serif font for CJK characters and punctuations."
@@ -1270,9 +1264,9 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
                           :weight 'bold
                           :font (zf-pick-font "Sarasa Mono TC"
                                               "Noto Sans"
-                                              "Arial"))))
-    ;; (zy--setup-org-faces)
-    ;; (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
+                                              "Arial")))
+    (zy--setup-org-faces)
+    (add-hook 'after-enable-theme-hook #'zy--setup-org-faces))
 #+end_src
 
 ** GTD System
