@@ -735,22 +735,25 @@ Turn on ~yas-minor-mode~ in need.
 #+begin_src emacs-lisp
   (zb init-yasnippet
     :pkg '(yasnippet yasnippet-snippets)
-    ;; Enable yasnippet on need.
-    (defun zy--yas-insert-snippet ()
-      "Enable `yas-global-mode', and insert a snippet.
-
-  The first time this function is called, it enables
-  `yas-global-mode', bounds the keybinding of itself to
-  `yas-insert-snippet', and insert a snippet like
-  `yas-insert-snippet' do."
-      (interactive)
-      (yas-global-mode +1)
-      (general-define-key
-       [remap zy--yas-insert-snippet] #'yas-insert-snippet)
-      (yas-insert-snippet))
+    ;; Enable yasnippet in need.
+    (with-eval-after-load "yasnippet"
+      (yas-global-mode +1))
+    ;; Disable yasnippet in some modes.
+    (defvar zy-yas-disable-hooks '(TeX-mode-hook
+                                   LaTeX-mode-hook)
+      "Mode hooks where yasnippet should be disabled.")
+    (defun zy-yas-turn-off ()
+      "Turn off `yas-minor-mode'."
+      (yas-minor-mode -1))
+    (dolist (hook zy-yas-disable-hooks)
+      (add-hook hook #'zy-yas-turn-off))
     ;; Snippet shortcut.
+    (autoload 'yas-insert-snippet "yasnippet"
+      "Choose a snippet to expand, pop-up a list of choices according
+  to ‘yas-prompt-functions’."
+      'interactive nil)
     (general-define-key
-     "C-c s" #'zy--yas-insert-snippet))
+     "C-c s" #'yas-insert-snippet))
 #+end_src
 
 ** Phi-Search
