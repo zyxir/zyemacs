@@ -734,9 +734,7 @@ Turn on ~yas-minor-mode~ in need.
 
 #+begin_src emacs-lisp
   (zb init-yasnippet
-    :pkg '(yasnippet
-           (yasnippet-snippets :type git :host github
-                               :repo "zyxir/yasnippet-snippets"))
+    :pkg '(yasnippet yasnippet-snippets)
     ;; Enable yasnippet on need.
     (defun zy--yas-insert-snippet ()
       "Enable `yas-global-mode', and insert a snippet.
