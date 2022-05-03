@@ -1136,11 +1136,11 @@ Change cursor color based on the current input method.
 
 ** TeX / LaTeX
 
-TeX and LaTeX configuration around AUCTeX and CDLaTeX.
+TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
 
 #+begin_src emacs-lisp
   (zb init-tex
-    :pkg '(auctex cdlatex)
+    :pkg '(auctex reftex cdlatex)
     :after-load "tex"
     (add-to-list 'TeX-command-list '("XeLaTeX"
                                      "%`xelatex%(mode)%' --synctex=1%(mode)%' %t"
@@ -1156,6 +1156,16 @@ TeX and LaTeX configuration around AUCTeX and CDLaTeX.
                   TeX-master nil
                   font-latex-fontify-script nil
                   TeX-PDF-mode t)
+
+    ;; Ref management with RefTeX.
+    (setq reftex-plug-into-AUCTeX t
+          reftex-enable-partial-scans t
+          reftex-save-parse-info t
+          reftex-use-multiple-selection-buffers t)
+    (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+
+    ;; LaTeX environment completion with CDLaTeX.
+    (add-hook 'LaTeX-mode-hook 'turn-on-cdlatex)
 
     ;; PDF Preview with PDF Tools.
     (setq-default TeX-view-program-selection '((output-pdf "PDF Tools"))
