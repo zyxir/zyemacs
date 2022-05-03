@@ -735,13 +735,19 @@ Turn on ~yas-minor-mode~ in need.
 #+begin_src emacs-lisp
   (zb init-yasnippet
     :pkg '(yasnippet yasnippet-snippets)
-    ;; Enable yasnippet on specific modes.
-    (defcustom zy$-yas-enabled-hooks '(emacs-lisp-mode-hook)
-      "Hooks to enable `yas-minor-mode'."
-      :type '(repeat symbol)
-      :group 'zyemacs)
-    (dolist (hook zy$-yas-enabled-hooks)
-      (add-hook hook #'yas-minor-mode-on))
+    ;; Enable yasnippet on need.
+    (defun zy--yas-insert-snippet ()
+      "Enable `yas-global-mode', and insert a snippet.
+
+  The first time this function is called, it enables
+  `yas-global-mode', bounds the keybinding of itself to
+  `yas-insert-snippet', and insert a snippet like
+  `yas-insert-snippet' do."
+      (interactive)
+      (yas-global-mode +1)
+      (general-define-key
+       [remap zy--yas-insert-snippet] #'yas-insert-snippet)
+      (yas-insert-snippet))
     ;; Snippet shortcut.
     (general-define-key
      "C-c s" #'zy--yas-insert-snippet))
