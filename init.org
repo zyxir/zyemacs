@@ -1134,13 +1134,13 @@ Change cursor color based on the current input method.
     (setq-local fill-column 70))
 #+end_src
 
-** LaTeX
+** TeX / LaTeX
 
-This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijing.ksyun.com/attachment/9ff9efaf747469424f48741629013db1][this document]].
+TeX and LaTeX configuration around AUCTeX and CDLaTeX.
 
 #+begin_src emacs-lisp
-  (zb init-latex
-    :pkg 'auctex
+  (zb init-tex
+    :pkg '(auctex cdlatex)
     :after-load "tex"
     (add-to-list 'TeX-command-list '("XeLaTeX"
                                      "%`xelatex%(mode)%' --synctex=1%(mode)%' %t"
@@ -1168,16 +1168,16 @@ This LaTeX configuration requires improvements. Refer to [[https://ks3-cn-beijin
     (defun zy-TeX-find-master-file ()
       "Finds the master file for TeX/LaTeX project by searching for
     'main.tex' in the good directories"
-      (let (foundFiles (currPath (expand-file-name "./")) foundFile)
-        (while (not (or foundFiles (equal currPath "/")))
-          (setq foundFiles (directory-files currPath t "main\\.tex"))
+      (let (found-files (currPath (expand-file-name "./")) found-file)
+        (while (not (or found-files (equal currPath "/")))
+          (setq found-files (directory-files currPath t "main\\.tex"))
           (setq currPath (expand-file-name (concat currPath "../"))))
         (and
-         (setq foundFile (car foundFiles))
-         (file-exists-p foundFile)
-         (setq foundFile (file-name-sans-extension foundFile))
-         foundFile)))
-    (defun zy-TeX-set-master-file (&optional ignore1 ignore2 ignore3)
+         (setq found-file (car found-files))
+         (file-exists-p found-file)
+         (setq found-file (file-name-sans-extension found-file))
+         found-file)))
+    (defun zy-TeX-set-master-file (&rest ignored)
       "Finds the master file by means of TeX-find-master-file and
     set TeX-master to it value"
       (setq TeX-master (or (zy-TeX-find-master-file) TeX-master)))
