@@ -997,6 +997,7 @@ R
                        (eldoc-mode nil eldoc)
                        (org-indent-mode nil org-indent)
                        (org-src-mode nil org-src)
+                       (reftex-mode nil reftex)
                        (subword-mode nil subword)
                        (super-save-mode nil super-save)
                        (valign-mode nil valign)
@@ -1152,6 +1153,7 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
                                      nil
                                      t))
     (setq TeX-auto-save t
+          TeX-electric-escape t
           TeX-parse-self t
           TeX-save-query nil
           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
@@ -1167,9 +1169,6 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
           reftex-save-parse-info t
           reftex-use-multiple-selection-buffers t)
     (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
-
-    ;; LaTeX environment completion with CDLaTeX.
-    (add-hook 'LaTeX-mode-hook 'turn-on-cdlatex)
 
     ;; PDF Preview with PDF Tools.
     (setq-default TeX-view-program-selection '((output-pdf "PDF Tools"))
