@@ -1153,7 +1153,6 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
                                      nil
                                      t))
     (setq TeX-auto-save t
-          TeX-electric-escape t
           TeX-parse-self t
           TeX-save-query nil
           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
