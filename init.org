@@ -756,18 +756,6 @@ Turn on ~yas-minor-mode~ in need.
      "C-c s" #'yas-insert-snippet))
 #+end_src
 
-** Phi-Search
-
-Phi-search is another incremental search and replace tool that is compatible with multiple-cursors and emacs-rime.
-
-#+begin_src emacs-lisp
-  (zb init-phi-search
-    :pkg 'phi-search
-    (general-define-key
-     "C-s" #'phi-search
-     "C-r" #'phi-search-backward))
-#+end_src
-
 * UI | 用戶界面
 
 ** Basic UI Settings
