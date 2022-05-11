@@ -21,3 +21,6 @@ recentf
 server
 transient
 url
+
+# ZyEmacs files
+zylatex.sty
