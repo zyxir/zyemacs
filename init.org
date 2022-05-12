@@ -532,46 +532,17 @@ Register user-defined project directories.
 
 #+begin_src emacs-lisp
   (zb init-proj
-    ;; Preload project directories.
+    ;; Easy command to refresh projects.
+    (defun zy/refresh-projects ()
+      "Refresh project list.
 
-    (defcustom zy$-project-parent-dirs nil
-      "A list of project parent directories.
-
-  The subdirectories under each of these parent directories will be
-  indexed by `zy/project-refresh'."
-      :type '(repeat directory)
-      :group 'zyemacs)
-    (defcustom zy$-project-dirs nil
-      "A list of project directories.
-
-  These directories will be indexed by `zy/project-refresh'."
-      :type '(repeat directory)
-      :group 'zyemacs)
-
-    ;; If Zybox is available, add its projects.
-
-    (with-eval-after-load 'init-zybox
-      (when zy$-use-zybox-p
-        (add-to-list 'zy$-project-parent-dirs
-                     (expand-file-name "projects"
-                                       zy$-zybox-path))))
-
-    ;; Project updater.
-
-    (defun zy/project-refresh ()
-      "Refresh project directories.
-
-  Project that does not exist will be removed, and projects will be
-  indexed according to `zy$-project-parent-dirs' and
-  `zy$-project-dirs'."
+  This function:
+  1. Runs `project-forget-zombie-projects'.
+  2. Runs `project-remember-projects-under' on Zybox/projects."
       (interactive)
       (project-forget-zombie-projects)
-      (dolist (pdir zy$-project-parent-dirs)
-        (when (file-directory-p pdir)
-          (project-remember-projects-under pdir)))
-      (dolist (dir zy$-project-dirs)
-        (when (file-directory-p dir)
-          (project-remember-project dir)))))
+      (project-remember-projects-under
+       (expand-file-name "projects" zy$-zybox-path))))
 #+end_src
 
 ** Restart-Emacs
