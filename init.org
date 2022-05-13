@@ -724,7 +724,7 @@ Turn on ~yas-minor-mode~ in need.
   to ‘yas-prompt-functions’."
       'interactive nil)
     (general-define-key
-     "C-c s" #'yas-insert-snippet))Q
+     "C-c s" #'yas-insert-snippet))
 #+end_src
 
 ** Spell Checking
@@ -733,13 +733,7 @@ Turn on ~yas-minor-mode~ in need.
   (zb init-spellcheck
     :pkg 'wucuo
     ;; Use wucuo as spell checker, which shares interface with flyspell.
-    (setq ispell-program-name "hunspell"
-          ispell-local-dictionary "myhunspell"
-          ispell-local-dictionary-alist '(("myhunspell" "[[:alpha:]]"
-                                           "[^[:alpha:]]" "[']" nil
-                                           ("-d" "en_US") nil utf-8)))
-    (when (boundp 'ispell-hunspell-dictionary-alist)
-      (setq ispell-hunspell-dictionary-alist ispell-local-dictionary-alist))
+    (setq ispell-program-name "hunspell")
     (add-hook 'text-mode-hook 'wucuo-start)
     (add-hook 'prog-mode-hook 'wucuo-start))
 #+end_src
@@ -981,6 +975,7 @@ R
                        (valign-mode nil valign)
                        (visual-line-mode nil simple)
                        (which-key-mode nil which-key)
+                       (wucuo-mode nil wucuo)
                        (yas-minor-mode nil yasnippet))))
 #+end_src
 
@@ -1224,7 +1219,13 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
 
 #+begin_src emacs-lisp
   (zb init-verilog
-    :pkg 'verilog-mode)
+    :pkg 'verilog-mode
+    (:after-load
+     'verilog-mode
+     (setq verilog-indent-lists nil))
+    (:hook-into
+     'verilog-mode-hook
+     (setq-local fill-column 100)))
 #+end_src
 
 * Org Related | Org 相關
