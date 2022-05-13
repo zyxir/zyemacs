@@ -355,7 +355,7 @@ Key-bindings are managed via ~general.el~, and ~which-key~ provides key hints. T
       "The leader key of ZyEmacs."
       :type 'key
       :group 'zyemacs)
-    (defcustom zy$-leader-key-alternatives '("M-`")
+    (defcustom zy$-leader-key-alternatives '("M-`" "<f5>")
       "A list of alternative leader keys of ZyEmacs."
       :type 'sexp
       :group 'zyemacs)
@@ -725,17 +725,6 @@ Turn on ~yas-minor-mode~ in need.
       'interactive nil)
     (general-define-key
      "C-c s" #'yas-insert-snippet))
-#+end_src
-
-** Spell Checking
-
-#+begin_src emacs-lisp
-  (zb init-spellcheck
-    :pkg 'wucuo
-    ;; Use wucuo as spell checker, which shares interface with flyspell.
-    (setq ispell-program-name "hunspell")
-    (add-hook 'text-mode-hook 'wucuo-start)
-    (add-hook 'prog-mode-hook 'wucuo-start))
 #+end_src
 
 * UI | 用戶界面
