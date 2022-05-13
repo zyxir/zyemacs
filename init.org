@@ -286,7 +286,7 @@ Manage package with straight.
     (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg))
 #+end_src
 
-* General | 一般性設置
+* General | 一般UI性設置
 
 ** Autoloads
 
@@ -724,7 +724,24 @@ Turn on ~yas-minor-mode~ in need.
   to ‘yas-prompt-functions’."
       'interactive nil)
     (general-define-key
-     "C-c s" #'yas-insert-snippet))
+     "C-c s" #'yas-insert-snippet))Q
+#+end_src
+
+** Spell Checking
+
+#+begin_src emacs-lisp
+  (zb init-spellcheck
+    :pkg 'wucuo
+    ;; Use wucuo as spell checker, which shares interface with flyspell.
+    (setq ispell-program-name "hunspell"
+          ispell-local-dictionary "myhunspell"
+          ispell-local-dictionary-alist '(("myhunspell" "[[:alpha:]]"
+                                           "[^[:alpha:]]" "[']" nil
+                                           ("-d" "en_US") nil utf-8)))
+    (when (boundp 'ispell-hunspell-dictionary-alist)
+      (setq ispell-hunspell-dictionary-alist ispell-local-dictionary-alist))
+    (add-hook 'text-mode-hook 'wucuo-start)
+    (add-hook 'prog-mode-hook 'wucuo-start))
 #+end_src
 
 * UI | 用戶界面
