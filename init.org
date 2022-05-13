@@ -1185,18 +1185,6 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
     (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
     (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
     (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode)))
-
-  (zb init-markdown-after-load
-    :when (display-graphic-p)
-    :after-load 'markdown-mode
-    (defun zy--setup-markdown-faces ()
-      "Setup custom faces for markdown-mode."
-      ;; Setup code faces.
-      (dolist (face '(markdown-code-face
-                      markdown-inline-code-face))
-        (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face)))
-    (zy--setup-markdown-faces)
-    (add-hook 'after-enable-theme-hook #'zy--setup-markdown-faces))
 #+end_src
 
 ** PDF
@@ -1265,8 +1253,6 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
                'bold
              'semi-bold))))
       ;; Other faces.
-      (dolist (face '(org-block org-code org-verbatim))
-        (zf-set-font zy$-font-mono nil zy$-font-mono-cjk face))
       (set-face-attribute 'org-todo nil
                           :foreground 'unspecified
                           :background 'unspecified
