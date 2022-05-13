@@ -1105,38 +1105,76 @@ Change cursor color based on the current input method.
 TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
 
 #+begin_src emacs-lisp
- (zb init-tex
-    :pkg '(auctex reftex cdlatex)
-    :after-load "tex"
-    (add-to-list 'TeX-command-list
-                 '("XeLaTeX"
-                   "%`xelatex%(mode)%' --synctex=1%(mode)%' %t"
-                   TeX-run-TeX
-                   nil
-                   t))
-    (setq TeX-auto-save t
-          TeX-parse-self t
-          TeX-save-query nil
-          TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
-    (setq-default TeX-engine 'xetex
-                  TeX-command-default "XeLaTeX"
-                  TeX-master nil
-                  font-latex-fontify-script nil
-                  TeX-PDF-mode t)
+  (zb init-tex
+     :pkg '(auctex reftex cdlatex)
+     :after-load "tex"
+     (add-to-list 'TeX-command-list
+                  '("XeLaTeX"
+                    "%`xelatex%(mode)%' --synctex=1%(mode)%' %t"
+                    TeX-run-TeX
+                    nil
+                    t))
+     (setq TeX-auto-save t
+           TeX-parse-self t
+           TeX-save-query nil
+           TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+     (setq-default TeX-engine 'xetex
+                   TeX-command-default "XeLaTeX"
+                   TeX-master nil
+                   font-latex-fontify-script nil
+                   TeX-PDF-mode t)
 
-    ;; Ref management with RefTeX.
-    (setq reftex-plug-into-AUCTeX t
-          reftex-enable-partial-scans t
-          reftex-save-parse-info t
-          reftex-use-multiple-selection-buffers t)
-    (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+     ;; Ref management with RefTeX.
+     (setq reftex-plug-into-AUCTeX t
+           reftex-enable-partial-scans t
+           reftex-save-parse-info t
+           reftex-use-multiple-selection-buffers t)
+     (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
 
-    ;; PDF Preview with PDF Tools.
-    (setq-default TeX-view-program-selection '((output-pdf "PDF Tools"))
-                  TeX-source-correlate-mode t
-                  TeX-source-correlate-start-server t)
-    (add-hook 'TeX-after-compilation-finished-functions
-              #'TeX-revert-document-buffer))
+     ;; PDF Preview with PDF Tools.
+     (setq-default TeX-view-program-selection '((output-pdf "PDF Tools"))
+                   TeX-source-correlate-mode t
+                   TeX-source-correlate-start-server t)
+     (add-hook 'TeX-after-compilation-finished-functions
+               #'TeX-revert-document-buffer))
+
+  (zb init-tex-master
+    "Automatic detection of `TeX-master'."
+    :after-load 'init-tex
+
+    (defvar zy-TeX-master-regexp '("main\\.tex" ".*\\.latexmain")
+      "Possible patterns of `TeX-master'.")
+
+    (defvar zy-TeX-master-depth 4
+      "Maximum level of parent directory to look for `TeX-master'.")
+
+    (defun zy-TeX-find-master ()
+      "Find a possible TeX master file."
+      (let ((curpath (expand-file-name "./"))
+            (curdepth 0)
+            foundfiles
+            foundfile)
+        (while (and (not foundfiles)
+                    (not (> curdepth zy-TeX-master-depth)))
+          (setq foundfiles (apply
+                            #'append
+                            (mapcar
+                             (lambda (regexp)
+                               (directory-files curpath 'full
+                                                regexp 'nosort))
+                             zy-TeX-master-regexp))
+                curpath (expand-file-name ".." curpath)
+                curdepth (+ curdepth 1)))
+        (and
+         (setq foundfile (car foundfiles))
+         (file-exists-p foundfile)
+         foundfile)))
+
+    (defun zy-TeX-set-master (&rest ignored)
+      "Find and set `TeX-master'."
+      (setq-local TeX-master (or (zy-TeX-find-master) TeX-master)))
+
+    (advice-add 'TeX-master-file :before #'zy-TeX-set-master))
 #+end_src
 
 ** Markdown

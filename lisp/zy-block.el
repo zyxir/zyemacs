@@ -252,7 +252,7 @@ If NOFLAGS is non-nil, ignore flag keywords."
 
 (defmacro zb (name &rest body)
   "Define a block of code as a zy-block."
-  (declare (indent 1))
+  (declare (indent 1) (doc-string 2))
   ;; Format body.
   (setq body (zb-format name body))
   ;; Wrap body into `prog1' with `name'.
