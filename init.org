@@ -1535,6 +1535,69 @@ Load org-roam when ~org-roam-directory~ is valid.
     (org-roam-db-autosync-mode))
 #+end_src
 
+** Markup
+
+Chinese words are not separated by spaces, which cause trouble for org-mode. These commands allow surrounding texts with markup symbols as well as zero width spaces, making it easier for Chinese text markup. See [[https://emacs-china.org/t/org-mode/597/49][this post]] for more.
+
+#+begin_src emacs-lisp
+  (zb init-org-markup
+    :after-load 'org
+    (defvar zy-org-surround-docstring-template
+      "Insert \"%s\" smartly.
+
+  If there is no active region, call `org-self-insert-command';
+  otherwise, surround the region with \"%s\", and insert zero-width
+  space if there is no space before or after the region."
+      "Template docstring for `zy-org-surround'.")
+    (defun zy-whitespace-p (char)
+      "Return t if CHAR is whitespace character, or nil otherwise."
+      (or (equal char ?\t)
+          (equal char ?\n)
+          (equal char ?\s)))
+    (defmacro zy-org-surround (&rest keys)
+      "Bind KEYS for org-mode markup surrounding.
+
+  Each key in KEYS will have a new functionality: if no region is
+  active, it inserts the symbol as exptected; but if there is an
+  active region, it surrounds the region with the key, and insert
+  zero-width space if there is no space before or after the region,
+  to make the markup actually work."
+      (let ((body nil)
+            cmdname
+            docstring)
+        (dolist (key keys)
+          (setq cmdname (intern (concat "zy/org-maybe-surround-" key))
+                docstring (format
+                           zy-org-surround-docstring-template key key))
+          (push `(defun ,cmdname ()
+                   ,docstring
+                   (interactive)
+                   (if (region-active-p)
+                       (let ((beg (region-beginning))
+                             (end (region-end)))
+                         (save-excursion
+                           (goto-char end)
+                           (insert ,key)
+                           (unless (zy-whitespace-p
+                                    (following-char))
+                             (insert-char #x200b))
+                           (goto-char beg)
+                           (unless (zy-whitespace-p
+                                    (char-before))
+                             (insert-char #x200b))
+                           (insert ,key)))
+                     (call-interactively #'org-self-insert-command)))
+                body)
+          (push `(general-define-key
+                  :keymaps 'org-mode-map
+                  ,key #',cmdname)
+                body))
+        (setq body (nreverse body))
+        (push 'progn body)
+        body))
+    (zy-org-surround "~" "=" "*" "/" "_" "+" "$"))
+#+end_src
+
 * Features | 功能
 
 ** Bibliography Management
