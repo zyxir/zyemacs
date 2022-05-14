@@ -1611,8 +1611,7 @@ Some top level definitions.
 #+begin_src emacs-lisp
   (zb init-bib
     :when zy$-use-zybox-p
-    (defvar zy-bib-dir (expand-file-name "library/Data"
-                                         zy$-zybox-path)
+    (defvar zy-bib-dir (expand-file-name "zotero" zy$-zybox-path)
       "Where all bibliography files are located.")
     (defvar zy-bib-files-relative '("references.bib")
       "Names of bibliography files, relative to `zy-bib-dir'.")
@@ -1621,13 +1620,7 @@ Some top level definitions.
                             (expand-file-name file
                                               zy-bib-dir))
                           zy-bib-files-relative)
-      "Names of bibliography files.")
-    (defvar zy-bib-pdf-dir (expand-file-name "files"
-                                             zy-bib-dir)
-      "Where all bibliography PDFs are located.")
-    (defvar zy-bib-notes (expand-file-name "notes.org"
-                                           zy-bib-dir)
-      "The notes file of bibliography."))
+      "Names of bibliography files."))
 #+end_src
 
 *** Citar
