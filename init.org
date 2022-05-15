@@ -3,10 +3,18 @@
 
 * Preface | 前言
 
+** My Usage of Emacs | 我使用 Emacs 来做什麼
+
+I use Emacs mainly in WSL (Windows Subsystem for Linux) for
+
+- Using [[https://orgmode.org/][org-mode]], [[https://www.orgroam.com/][org-roam]], [[https://github.com/bastibe/org-journal][org-journal]], and other org utilities.
+- Writing documents in: LaTeX, markdown, org.
+- Coding in: Python.
+
 ** How to Install | 如何安裝
 
 Press =C-c C-v t= (~org-babel-tangle~) while reading this file inside Emacs, to generate the actual
-configuration file, ~init.el~. Relaunch Emacs to make the configuration take effect.
+configuration file, ~init.el~. Relaunch Emacs to load the configuration file.
 
 Alternatively, you can use this command in Shell to generate the configuration file: (replace "/path/to/init.org" with the actual path of this file)
 
@@ -26,9 +34,7 @@ Symbol names starts with ~NAMESPACE~, where ~NAMESPACE~ is usually ~zy~.
 - ~NAMESPACE--NAME~ :: A protected function or variable.
 - ~abc!~ or ~NAMESPACE-abc!~ :: A macro.
 
-The optional ~-~ added before symbol ~NAME~ signifies a protected function/variable that should only be used internally.
-
-* Startup | 啟動
+* Startup | 啓動
 
 ** Early Init
 
@@ -286,7 +292,7 @@ Manage package with straight.
     (zb-define-keyword ':pkg 'single #'zb-wrapper-pkg))
 #+end_src
 
-* General | 一般UI性設置
+* General | 一般性設置
 
 ** Autoloads
 
