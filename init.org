@@ -528,21 +528,37 @@ Configuring native Emacs features.
 
 ** Project Management
 
-Register user-defined project directories.
+A project is a directory under version control. On each of my devices, I place my projects differently, thus I created the following mechanism to manage my projects.
 
 #+begin_src emacs-lisp
   (zb init-proj
+    ;; Path of projects.
+
+    (defcustom zy$-projects-path nil
+      "Where ZyEmacs should look for projects.
+
+  This variable should be set individually on each machine."
+      :type '(repeat directory)
+      :group 'zyemacs)
+
     ;; Easy command to refresh projects.
-    (defun zy/refresh-projects ()
+
+    (defun zy/projects-refresh ()
       "Refresh project list.
 
   This function:
-  1. Runs `project-forget-zombie-projects'.
-  2. Runs `project-remember-projects-under' on Zybox/projects."
+
+  - Load `project.el'.
+
+  - Runs `project-forget-zombie-projects'.
+
+  - Runs `project-remember-projects-under' on every path of
+    `zy$-projects-path'."
       (interactive)
+      (require 'project)
       (project-forget-zombie-projects)
-      (project-remember-projects-under
-       (expand-file-name "projects" zy$-zybox-path))))
+      (dolist (path zy$-projects-path)
+        (project-remember-projects-under path))))
 #+end_src
 
 ** Restart-Emacs
