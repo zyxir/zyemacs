@@ -1575,7 +1575,8 @@ Chinese words are not separated by spaces, which cause trouble for org-mode. The
       "Return t if CHAR is whitespace character, or nil otherwise."
       (or (equal char ?\t)
           (equal char ?\n)
-          (equal char ?\s)))
+          (equal char ?\s)
+          (equal char #x200b)))
     (defmacro zy-org-surround (&rest keys)
       "Bind KEYS for org-mode markup surrounding.
 
