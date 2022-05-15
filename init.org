@@ -303,7 +303,7 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
 
     ;; Autoloads updater.
 
-    (defun zy/update-autoloads ()
+    (defun zy/autoloads-update ()
       "Update all autoloads for non-package lisp scripts."
       (interactive)
       (require 'autoload)
@@ -323,13 +323,13 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
 
     ;; Update autoloads on exit.
 
-    (add-hook 'kill-emacs-hook #'zy/update-autoloads)
+    (add-hook 'kill-emacs-hook #'zy/autoloads-update)
 
     ;; Load autoloads now.
 
     (if (file-exists-p zy-loaddefs-file)
         (load zy-loaddefs-file t)
-      (zy/update-autoloads)))
+      (zy/autoloads-update)))
 #+end_src
 
 ** Emacs Server
@@ -594,7 +594,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
       (require 'ob)
       (org-babel-tangle-file
        (expand-file-name "init.org" user-emacs-directory))
-      (zy/update-autoloads)
+      (zy/autoloads-update)
       (setq args
             (cond
              ((called-interactively-p 'any)
