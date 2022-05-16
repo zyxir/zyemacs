@@ -1436,29 +1436,70 @@ The following elements should only be exported when demanded explicitly: table o
   (zb init-ox-latex
     :after-load 'ox-latex
     ;; Retrieve the "zylatex.sty" file.
+
     (defvar zy-zylatex-file
       (file-truename
        (expand-file-name "zylatex.sty" user-emacs-directory))
       "Default LaTeX style file to use.")
-    (defun zy/update-zylatex-file ()
+
+    (defun zy/ox-latex-update-zylatex-file ()
       "Update the `zy-zylatex-file' from GitHub or Zybox."
       (interactive)
-      (if zy$-use-zybox-p
-          (copy-file
-           (expand-file-name "projects/ego/std/std-latex/zylatex.sty"
-                             zy$-zybox-path)
-           zy-zylatex-file 'ok-if-already-exists 'keep-time
-           'preserve-uid-gid 'preserve-permissions)
-        (url-copy-file
-         "https://raw.githubusercontent.com/zyxir/std-latex/main/zylatex.sty"
-         zy-zylatex-file 'ok-if-already-exists))
-      (message "\"zylatex.sty\" downloaded for PDF export."))
+      (let* (ego-found
+             std-latex-found
+             possible-paths
+             path-to-examine
+             projet-name)
+        ;; Try to find my 'ego' or 'std-latex' repo via project.el.
+        (require 'project)
+        (when (equal project--list 'unset)
+          (project--read-project-list))
+        (setq possible-paths project--list)
+        (while possible-paths
+          (setq path-to-examine (caar possible-paths)
+                project-name (file-name-nondirectory
+                              (directory-file-name path-to-examine)))
+          (cond
+           ((equal project-name "std-latex")
+            (setq std-latex-found path-to-examine
+                  possible-paths nil))
+           ((equal project-name "ego")
+            (setq ego-found path-to-examine
+                  possible-paths nil))
+           (t (setq possible-paths (cdr possible-paths)))))
+        ;; When something is found, copy zylatex.sty from it, otherwise
+        ;; download zylatex.sty from GitHub.
+        (cond
+         (ego-found
+          (copy-file (expand-file-name
+                      "std/std-latex/zylatex.sty" ego-found)
+                     zy-zylatex-file 'ok-if-already-exists 'keep-time
+                     'preserve-uid-gid 'preserve-permissions)
+          (message "\"zylatex.sty\" copied from project \"ego\""))
+         (std-latex-found
+          (copy-file (expand-file-name
+                      "zylatex.sty" std-latex-found)
+                     zy-zylatex-file 'ok-if-already-exists 'keep-time
+                     'preserve-uid-gid 'preserve-permissions)
+          (message "\"zylatex.sty\" copied from project \"std-latex\""))
+         (t
+          (url-copy-file
+           "https://raw.githubusercontent.com/zyxir/std-latex/main/zylatex.sty"
+           zy-zylatex-file 'ok-if-already-exists)
+          (message "\"zylatex.sty\" downloaded.")))))
+
     (unless (file-exists-p zy-zylatex-file)
-      (zy/update-zylatex-file))
-    ;; The LaTeX exporter.
+      (zy/ox-latex-update-zylatex-file))
+
+    ;; Configure LaTeX exporter.
+
     (setq org-latex-compiler "xelatex"
-          org-latex-default-class "article")
-    (setq org-latex-classes
+          org-latex-default-class "article"
+          ;; Delete ".tex" file as well.
+          org-latex-logfiles-extensions
+          '("aux" "bcf" "blg" "fdb_latexmk" "fls" "figlist" "idx" "log"
+            "nav" "out" "ptc" "run.xml" "snm" "tex" "toc" "vrb" "xdv")
+          org-latex-classes
           `(("article"
              ,(format
                "\\documentclass[12pt]{article}
@@ -1480,7 +1521,24 @@ The following elements should only be exported when demanded explicitly: table o
              ("\\subsection{%s}" . "\\subsection*{%s}")
              ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
              ("\\paragraph{%s}" . "\\paragraph*{%s}")
-             ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))))
+             ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+
+    ;; Export smartphone-friendly PDF.
+
+    (defun zy-org-latex-export-to-pdf-phone
+        (&optional async subtreep visible-only body-only ext-plist)
+      "Export current buffer to smartphone-friendly PDF.
+
+  The function works like `org-latex-export-to-pdf', except that
+  `org-latex-default-class' is set to \"article-phone\"."
+      (let ((org-latex-default-class "article-phone"))
+        (org-latex-export-to-pdf async subtreep visible-only
+                                 body-only ext-plist)))
+    (org-export-define-derived-backend 'latex-pdf-phone 'latex
+      :menu-entry '(?l
+                    "Export to LaTeX"
+                    ((?P "As PDF file (phone-friendly)"
+                         zy-org-latex-export-to-pdf-phone)))))
 #+end_src
 
 ** Org-Superstar
