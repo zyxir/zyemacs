@@ -1557,6 +1557,31 @@ Load org-roam when ~org-roam-directory~ is valid.
     (org-roam-db-autosync-mode))
 #+end_src
 
+*** Org-Roam-UI
+
+#+begin_src emacs-lisp
+  (zb init-org-roam-ui
+    :pkg 'org-roam-ui
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t)
+    ;; Open or close it with command.
+    (defun zy/roam-ui-dwim ()
+      "Do what I mean with `org-roam-ui-mode'.
+
+  Without 'C-u' prefix, this function works as `org-roam-ui-open'.
+
+  With one 'C-u' prefix, this function turns off `org-roam-ui-mode'"
+      (interactive)
+      (if (equal current-prefix-arg nil)
+          (org-roam-ui-open)
+        (org-roam-ui-mode -1)))
+    (general-define-key
+     :keymaps 'zy-leader-roam-map
+     "u" 'zy/roam-ui-dwim))
+#+end_src
+
 ** Markup
 
 Chinese words are not separated by spaces, which cause trouble for org-mode. These commands allow surrounding texts with markup symbols as well as zero width spaces, making it easier for Chinese text markup. See [[https://emacs-china.org/t/org-mode/597/49][this post]] for more.
