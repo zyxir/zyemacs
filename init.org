@@ -1537,7 +1537,7 @@ The following elements should only be exported when demanded explicitly: table o
     (org-export-define-derived-backend 'latex-pdf-phone 'latex
       :menu-entry '(?l
                     "Export to LaTeX"
-                    ((?P "As PDF file (phone-friendly)"
+                    ((?j "As PDF file (phone-friendly)"
                          zy-org-latex-export-to-pdf-phone)))))
 #+end_src
 
