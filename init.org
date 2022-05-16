@@ -1457,19 +1457,30 @@ The following elements should only be exported when demanded explicitly: table o
       (zy/update-zylatex-file))
     ;; The LaTeX exporter.
     (setq org-latex-compiler "xelatex"
-          org-latex-default-class "zylatex")
-    (add-to-list 'org-latex-classes
-                 `("zylatex"
-                   ,(format
-                     "\\documentclass[12pt]{article}
+          org-latex-default-class "article")
+    (setq org-latex-classes
+          `(("article"
+             ,(format
+               "\\documentclass[12pt]{article}
   \\usepackage[]{%s}
   [PACKAGES]
   [EXTRA]" (file-name-sans-extension zy-zylatex-file))
-                   ("\\section{%s}" . "\\section*{%s}")
-                   ("\\subsection{%s}" . "\\subsection*{%s}")
-                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
-                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+             ("\\section{%s}" . "\\section*{%s}")
+             ("\\subsection{%s}" . "\\subsection*{%s}")
+             ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+             ("\\paragraph{%s}" . "\\paragraph*{%s}")
+             ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
+            ("article-phone"
+             ,(format
+               "\\documentclass[12pt]{article}
+  \\usepackage[layout=phone]{%s}
+  [PACKAGES]
+  [EXTRA]" (file-name-sans-extension zy-zylatex-file))
+             ("\\section{%s}" . "\\section*{%s}")
+             ("\\subsection{%s}" . "\\subsection*{%s}")
+             ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+             ("\\paragraph{%s}" . "\\paragraph*{%s}")
+             ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))))
 #+end_src
 
 ** Org-Superstar
