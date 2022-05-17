@@ -3,13 +3,13 @@
 [[file:init.org][Config]] · [[file:SCREENSHOTS.org][Screenshots]] ·[[file:CHANGELOG.org][Changelog]]
 #+html: </div>
 
-This is my Emacs configuration focused on being
+This is my Emacs configuration focuses on being
 
 - *Minimal*. I practise [[https://en.wikipedia.org/wiki/Minimalism][minimalism]] in my daily life, as well as in Emacs.
 - *Manageable*. Advanced approaches are used to minimize the cost of managing the configuration.
 - *Functional*. This configuration satisfies most of my daily needs.
 
-For information like *"how to install"*​, see [[./init.org][init.org]].
+For information like installation instructions, see [[./init.org][init.org]].
 
 ** Links
 
