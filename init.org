@@ -633,7 +633,7 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     (super-save-mode +1))
 #+end_src
 
-** Text Alignment
+** Table Alignment
 
 Visually align texts in tables in Markdown mode and Org mode.
 
@@ -723,6 +723,21 @@ Zybox is the collection of my personal files.
 #+end_src
 
 * Text Editing | 文本編輯
+
+** Incremental Search
+
+Isearch-mb is used to enable using Chinese in isearch. The package has much more
+functionalities than this, maybe I shall study it later by reading its [[https://github.com/astoff/isearch-mb/wiki][wiki]].
+
+#+begin_src emacs-lisp
+  (zb init-isearch
+    :pkg 'isearch-mb
+    (setq-default search-ring-max 200
+                  regexp-search-ring-max 200
+                  isearch-lazy-count t
+                  isearch-regexp-lax-whitespace t)
+    (isearch-mb-mode +1))
+#+end_src
 
 ** Yasnippet
 
