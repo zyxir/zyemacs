@@ -985,7 +985,7 @@ With which the fonts are customized here:
               (lambda ()
                 (zy/resize-frame nil 'no-rem))))
 #+end_src
-R
+
 ** Mode Line
 
 #+begin_src emacs-lisp
