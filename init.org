@@ -997,6 +997,7 @@ With which the fonts are customized here:
                        (buffer-face-mode nil face-remap)
                        (eldoc-mode nil eldoc)
                        (org-indent-mode nil org-indent)
+                       (org-roam-ui-follow-mode org-roam)
                        (org-src-mode nil org-src)
                        (reftex-mode nil reftex)
                        (subword-mode nil subword)
