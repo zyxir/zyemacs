@@ -188,8 +188,8 @@ Personal information and top-level definitions.
         (defvar zy--*wsl*
           (equal
            0
-           (shell-command
-            "grep -q -e \"[Mm]icrosoft\" /proc/version"))
+           (call-process "grep" "/proc/version" t nil
+                         "-q" "[Mm]icrosoft"))
           "If ZyEmacs is run on WSL.
 
   Do not use this variable directly. Use `zy-wsl-p' instead."))
