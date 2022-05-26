@@ -1248,12 +1248,30 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
 
 ** Verilog
 
+This section is inspired by [[https://github.com/kaushalmodi][Kaushal Modi]]'s configuration.
+
 #+begin_src emacs-lisp
   (zb init-verilog
     :pkg 'verilog-mode
+
+    ;; After load.
     (:after-load
      'verilog-mode
-     (setq verilog-indent-lists nil))
+
+     ;; Let all indentations be 2 spaces.
+     (let ((verilog-indent-level-all 2))
+       (dolist (indent '(verilog-indent-level
+                         verilog-indent-level-module
+                         verilog-indent-level-declaration
+                         verilog-indent-level-behavioral
+                         verilog-indent-level-directive
+                         verilog-case-indent))
+         (set indent verilog-indent-level-all)))
+
+     ;; Other settings.
+     (setq verilog-auto-newline nil))
+
+    ;; Mode hook.
     (:hook-into
      'verilog-mode-hook
      (setq-local fill-column 100)))
