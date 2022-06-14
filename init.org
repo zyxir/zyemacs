@@ -979,6 +979,13 @@ With which the fonts are customized here:
               (set-frame-size frame width-rem height-rem)
             (set-frame-size frame width-standard height-standard)))))
 
+    (define-prefix-command 'zy-leader-frame-map)
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "f" 'zy-leader-frame-map)
+    (general-define-key
+     :keymaps 'zy-leader-frame-map
+     "f" 'zy/resize-frame)
     (add-to-list 'after-make-frame-functions
                  #'zy/resize-frame)
     (add-hook 'emacs-startup-hook
