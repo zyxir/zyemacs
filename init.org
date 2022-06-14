@@ -767,6 +767,23 @@ Turn on ~yas-minor-mode~ in need.
      "C-c s" #'yas-insert-snippet))
 #+end_src
 
+** Unfill Paragraph
+
+Unfilling paragraph or region.
+
+#+begin_src emacs-lisp
+  (defun zy/unfill-paragraph (&optional region)
+    "Unfill a multi-line paragraph.
+
+  If REGION is not nil, unfill every paragraph in the region."
+    (interactive (progn (barf-if-buffer-read-only) '(t)))
+    (let ((fill-column (point-max))
+          (emacs-lisp-docstring-fill-column t))
+      (fill-paragraph nil region)))
+
+  (general-define-key "M-Q" 'zy/unfill-paragraph)
+#+end_src
+
 * UI | 用戶界面
 
 ** Basic UI Settings
