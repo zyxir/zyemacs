@@ -874,14 +874,14 @@ With which the fonts are customized here:
     :when (display-graphic-p)
     :hook-into 'after-init-hook
     (defcustom zy$-font-mono (zf-pick-font
-                              "Sarasa Mono HC"
+                              "Sarasa Mono CL"
                               "Consolas"
                               "monospace")
       "Monospace font. Used on most occasions."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-mono-cjk (zf-pick-font
-                                  "Sarasa Mono HC"
+                                  "Sarasa Mono CL"
                                   "Microsoft YaHei"
                                   "monospace")
       "Monospace font for CJK characters and punctuations."
@@ -895,7 +895,7 @@ With which the fonts are customized here:
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-sans-cjk (zf-pick-font
-                                  "Sarasa Mono HC"
+                                  "Sarasa Mono CL"
                                   "Microsoft YaHei"
                                   "sans-serif")
       "Sans-serif font for CJK characters and punctuations."
@@ -909,7 +909,7 @@ With which the fonts are customized here:
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-serif-cjk (zf-pick-font
-                                   "Source Han Serif HC"
+                                   "Source Han Serif K"
                                    "STSong"
                                    "serif")
       "Serif font for CJK characters and punctuations."
@@ -922,7 +922,7 @@ With which the fonts are customized here:
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-title-cjk (zf-pick-font
-                                   "Sarasa Mono HC"
+                                   "Sarasa Mono CL"
                                    "Microsoft YaHei"
                                    "sans-serif")
       "CJK font used for titles."
