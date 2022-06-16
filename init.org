@@ -1787,7 +1787,7 @@ Some top level definitions.
 #+begin_src emacs-lisp
   (zb init-bib
     :when zy$-use-zybox-p
-    (defvar zy-bib-dir (expand-file-name "zotero" zy$-zybox-path)
+    (defvar zy-bib-dir (expand-file-name "library" zy$-zybox-path)
       "Where all bibliography files are located.")
     (defvar zy-bib-files-relative '("references.bib")
       "Names of bibliography files, relative to `zy-bib-dir'.")
@@ -1796,17 +1796,90 @@ Some top level definitions.
                             (expand-file-name file
                                               zy-bib-dir))
                           zy-bib-files-relative)
-      "Names of bibliography files."))
+      "Names of bibliography files.")
+    (defvar zy-bib-note-file (expand-file-name "notes.org" zy-bib-dir)
+      "Notes for bibliography entries.")
+    (defvar zy-bib-prints-dir (expand-file-name "prints"
+                                                zy-bib-dir)
+      "\"printed\" files of bibliography entries.
+
+  Printed files include PDFs, EPUBs, webpage snapshots, CAJs and
+  other formats for reading."))
+#+end_src
+
+*** Ebib
+
+Ebib as the bibliography management interface.
+
+#+begin_src emacs-lisp
+  (zb init-ebib
+    :pkg 'ebib
+    (general-define-key
+     :keymaps 'zy-leader-map
+     "e" 'ebib)
+    (setq ebib-use-timestamp t
+          ebib-preload-bib-files zy-bib-files
+          ebib-bibtex-dialect 'biblatex
+          ebib-uniquify-keys t
+          ebib-file-associations nil
+          ebib-file-search-dirs `(,zy-bib-prints-dir)
+          ebib-notes-storage 'multiple-notes-per-file
+          ebib-notes-use-single-file zy-bib-note-file
+          ebib-notes-template "** %T\n:PROPERTIES:\n%K\n:END:\n%%?\n"
+          ebib-import-directory (cond
+                                 ((zy-wsl-p)
+                                  "/mnt/c/Users/zyxir/Downloads/")
+                                 (zy-*linux*
+                                  "~/Downloads/")
+                                 (zy-*windows*
+                                  "C:\\Users\\zyxir\\Downloads\\")
+                                 (t nil))))
 #+end_src
 
 *** Citar
+
+Inserting and managing org-cite style citations with citar.
 
 #+begin_src emacs-lisp
   (zb init-citar
     :when zy$-use-zybox-p
     :pkg 'citar
-    (setq citar-bibliography zy-bib-files)
+    (setq citar-bibliography zy-bib-files
+          citar-library-paths `(,zy-bib-prints-dir))
     (general-define-key
      "C-c c" #'citar-insert-citation
      "C-c C" #'citar-insert-preset))
+#+end_src
+
+*** BibTeX
+
+The BibTeX module in Emacs is used by Ebib to generate entry keys.
+
+#+begin_src emacs-lisp
+  (zb init-bibtex
+    :after-load 'bibtex
+    (setq bibtex-files zy-bib-files
+          bibtex-autokey-name-length 'infty
+          bibtex-autokey-name-year-separator "-"
+          bibtex-autokey-year-length 4
+          bibtex-autokey-year-title-separator "-"
+          bibtex-autokey-titleword-separator "-"
+          bibtex-autokey-titlewords 1
+          bibtex-autokey-titlewords-stretch 1
+          bibtex-autokey-titleword-length 5))
+#+end_src
+
+*** Biblio
+
+Biblio gathers bibliographic references from various sources conveniently. It is used by Ebib as well.
+
+#+begin_src emacs-lisp
+  (zb init-biblio
+    :pkg 'biblio
+    :after-load 'ebib
+    (require 'ebib-biblio)
+    (setq biblio-bibtex-use-autokey t)
+    (general-define-key
+     :keymaps 'biblio-selection-mode-map
+     "e" #'ebib-biblio-selection-import))
 #+end_src
