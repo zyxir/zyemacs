@@ -1865,9 +1865,16 @@ Some top level definitions.
 
 Ebib as the bibliography management interface.
 
+[2022-06-16 Thu] Use my own fork of ebib to provide WSL support.
+
 #+begin_src emacs-lisp
   (zb init-ebib
-    :pkg 'ebib
+    :when zy$-use-zybox-p
+    :pkg '(ebib
+           :type git
+           :host github
+           :repo "zyxir/ebib"
+           :branch master)
     (general-define-key
      :keymaps 'zy-leader-map
      "e" 'ebib)
@@ -1875,7 +1882,10 @@ Ebib as the bibliography management interface.
           ebib-preload-bib-files zy-bib-files
           ebib-bibtex-dialect 'biblatex
           ebib-uniquify-keys t
-          ebib-file-associations nil
+          ebib-file-associations (mapcar
+                                  (lambda (ext)
+                                    `(,ext . ,zy--native-open-command))
+                                  '("pdf" "epub" "caj" "html"))
           ebib-file-search-dirs `(,zy-bib-prints-dir)
           ebib-notes-storage 'multiple-notes-per-file
           ebib-notes-use-single-file zy-bib-note-file
@@ -1898,12 +1908,19 @@ Ebib as the bibliography management interface.
 
 Inserting and managing org-cite style citations with citar.
 
+[2022-06-16 Thu] Use my own fork of citar to support opening HTML file with my own opener.
+
 #+begin_src emacs-lisp
   (zb init-citar
     :when zy$-use-zybox-p
-    :pkg 'citar
+    :pkg '(citar
+           :type git
+           :host github
+           :repo "zyixr/citar"
+           :branch "main")
     (setq citar-bibliography zy-bib-files
-          citar-library-paths `(,zy-bib-prints-dir))
+          citar-library-paths `(,zy-bib-prints-dir)
+          citar-file-open-function #'zy--native-open)
     (general-define-key
      "C-c c" #'citar-insert-citation
      "C-c C" #'citar-insert-preset))
@@ -1933,6 +1950,7 @@ Biblio gathers bibliographic references from various sources conveniently. It is
 
 #+begin_src emacs-lisp
   (zb init-biblio
+    :when zy$-use-zybox-p
     :pkg 'biblio
     :after-load 'ebib
     (require 'ebib-biblio)
