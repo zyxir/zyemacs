@@ -1833,7 +1833,11 @@ Ebib as the bibliography management interface.
                                   "~/Downloads/")
                                  (zy-*windows*
                                   "C:\\Users\\zyxir\\Downloads\\")
-                                 (t nil))))
+                                 (t nil)))
+    (general-define-key
+     :keymaps 'ebib-index-mode-map
+     "D" #'ebib-download-url
+     "L" #'ebib-import-file))
 #+end_src
 
 *** Citar
