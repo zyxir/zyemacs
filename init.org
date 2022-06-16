@@ -348,6 +348,60 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
       (server-start)))
 #+end_src
 
+** External Programs
+
+Open file based on the OS's preference.
+
+#+begin_src emacs-lisp
+  (zb init-extapp-os
+    ;; OS-specific command string of opening files.
+    (defvar zy--native-open-command
+      (cond
+       (zy-*windows* "open \"%s\"")
+       ((zy-wsl-p) "wslview $(wslpath -w \"%s\")")
+       (zy-*linux* "xdg-open \"%s\""))
+      "Command string to open file natively")
+
+    ;; OS-specific native function of opening files.
+    (defun zy--windows-open (file)
+      "Open FILE in Windows native way."
+      (w32-shell-execute
+       "open"
+       (replace-regexp-in-string "/" "\\" fPath t t)))
+    (defun zy--wsl-open (file)
+      "Open FILE in Windows."
+      (shell-command (format "wslview $(wslpath -w \"%s\")" file)))
+    (defun zy--linux-open (file)
+      "Open FILE in Linux native way."
+      (let ((process-connection-type nil))
+        (start-process "" nil "xdg-open" file)))
+    (fset 'zy--native-open
+      (cond
+       (zy-*windows* #'zy--windows-open)
+       ((zy-wsl-p) #'zy--wsl-open)
+       (zy-*linux* #'zy--linux-open)))
+
+    ;; The interactive command.
+    (defun zy/open-in-external-app (&optional file)
+      "Open some file in external app.
+
+  The file to open could be FILE if it is not nil or omitted, or
+  files marked by dired in `dired-mode', or the current file.
+
+  The app is chosen from the OS's preference."
+      (interactive)
+      (let* ((flist (cond
+                     ((string-equal major-mode "dired-mode")
+                      (dired-get-marked-files))
+                     ((not file) (list (buffer-file-name)))
+                     (file (list file))))
+             (do-it (if (<= (length flist) 5)
+                        t
+                      (y-or-n-p "Open more than 5 files? "))))
+        (when do-it
+          (mapc #'zy--native-open flist)))))
+#+end_src
+
 ** Key-Binding
 
 Key-bindings are managed via ~general.el~, and ~which-key~ provides key hints. The leader key of ZyEmacs, which is =M-m= by default, is also defined here.
