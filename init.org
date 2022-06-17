@@ -555,6 +555,7 @@ Configuring native Emacs features.
     (setq
      auto-save-default nil
      disabled-command-function nil
+     frame-title-format '("" "ZyEmacs" " [%b]")
      inhibit-compacting-font-caches t
      make-backup-files nil
      project-switch-commands '((project-find-file "Find file" "f")
@@ -576,12 +577,6 @@ Configuring native Emacs features.
       (recentf-mode +1)
       (save-place-mode +1)
       (load "kinsoku" 'noerror 'nomessage))
-
-    (add-hook! 'emacs-startup-hook
-      (setq frame-title-format
-            (if (zy-wsl-p)
-                '("" "WSL Emacs" " [%b]")
-              '("" "Emacs" " [%b]"))))
 
     (dolist (hook '(prog-mode-hook text-mode-hook))
       (add-hook! hook
