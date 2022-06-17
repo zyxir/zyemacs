@@ -971,13 +971,13 @@ With which the fonts are customized here:
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-title (zf-pick-font
-                               "Roboto Slab"
+                               "Roboto Slab Semibold"
                                "sans-serif")
       "Font used for titles."
       :type 'sexp
       :group 'zyemacs-ui)
     (defcustom zy$-font-title-cjk (zf-pick-font
-                                   "Sarasa Mono CL"
+                                   "Sarasa Mono CL Semibold"
                                    "Microsoft YaHei"
                                    "sans-serif")
       "CJK font used for titles."
