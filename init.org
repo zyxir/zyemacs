@@ -1497,6 +1497,19 @@ Enable the GTD system when ~zy$-gtd-path~ is valid.
           (push (car proj-todos) org-agenda-files)))))
 #+end_src
 
+** Org-Download
+
+Org-download provides an alternate method of inserting images in org files.
+
+#+begin_src emacs-lisp
+  (zb init-org-download
+    :pkg 'org-download
+    (setq org-download-method 'directory)
+    (setq-default org-download-image-dir "./images"
+                  org-download-heading-lvl nil)
+    (add-hook 'org-mode-hook (lambda () (require 'org-download))))
+#+end_src
+
 ** Org-Export
 
 Export settings of various format.
