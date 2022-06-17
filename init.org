@@ -184,16 +184,17 @@ Personal information and top-level definitions.
 
     (defun zy-wsl-p ()
       "Return t if ZyEmacs is run on WSL."
-      (unless (boundp 'zy--*wsl*)
-        (defvar zy--*wsl*
-          (equal
-           0
-           (call-process "grep" "/proc/version" t nil
-                         "-q" "[Mm]icrosoft"))
-          "If ZyEmacs is run on WSL.
+      (when zy-*linux*
+        (unless (boundp 'zy--*wsl*)
+          (defvar zy--*wsl*
+            (equal
+             0
+             (call-process "grep" "/proc/version" t nil
+                           "-q" "[Mm]icrosoft"))
+            "If ZyEmacs is run on WSL.
 
   Do not use this variable directly. Use `zy-wsl-p' instead."))
-      zy--*wsl*)
+        zy--*wsl*))
 
     ;; Swtiches of ZyEmacs features.
 
