@@ -1217,6 +1217,39 @@ Change cursor color based on the current input method.
     (setq-local fill-column 70))
 #+end_src
 
+** Miscellaneous
+
+#+begin_src emacs-lisp
+  (zb init-json
+    :pkg 'json-mode)
+#+end_src
+
+** Markdown
+
+#+begin_src emacs-lisp
+  (zb init-markdown
+    :pkg '(markdown-mode markdown-toc)
+    (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+    (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+    (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode)))
+#+end_src
+
+** PDF
+
+#+begin_src emacs-lisp
+  (zb init-pdf
+    :pkg 'pdf-tools
+    (pdf-loader-install)
+    (:hook-into 'pdf-view-mode-hook
+                (display-line-numbers-mode -1)
+                (auto-revert-mode -1))
+    (:after-load 'pdf-view
+                 (general-define-key
+                  :keymaps 'pdf-view-mode-map
+                  ;; Less confirmation on buffer revert.
+                  "g" #'revert-buffer-quick)))
+#+end_src
+
 ** TeX / LaTeX
 
 TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
@@ -1292,32 +1325,6 @@ TeX and LaTeX configuration around AUCTeX, RefTeX and CDLaTeX.
       (setq-local TeX-master (or (zy-TeX-find-master) TeX-master)))
 
     (advice-add 'TeX-master-file :before #'zy-TeX-set-master))
-#+end_src
-
-** Markdown
-
-#+begin_src emacs-lisp
-  (zb init-markdown
-    :pkg '(markdown-mode markdown-toc)
-    (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
-    (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-    (add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode)))
-#+end_src
-
-** PDF
-
-#+begin_src emacs-lisp
-  (zb init-pdf
-    :pkg 'pdf-tools
-    (pdf-loader-install)
-    (:hook-into 'pdf-view-mode-hook
-                (display-line-numbers-mode -1)
-                (auto-revert-mode -1))
-    (:after-load 'pdf-view
-                 (general-define-key
-                  :keymaps 'pdf-view-mode-map
-                  ;; Less confirmation on buffer revert.
-                  "g" #'revert-buffer-quick)))
 #+end_src
 
 ** Verilog
