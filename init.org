@@ -352,31 +352,20 @@ Open file based on the OS's preference.
 
 #+begin_src emacs-lisp
   (zb init-extapp-os
-    ;; OS-specific command string of opening files.
-    (defvar zy--native-open-command
-      (cond
-       (zy-*windows* "open \"%s\"")
-       ((zy-wsl-p) "wslview $(wslpath -w \"%s\")")
-       (zy-*linux* "xdg-open \"%s\""))
-      "Command string to open file natively")
-
     ;; OS-specific native function of opening files.
     (defun zy--windows-open (file)
       "Open FILE in Windows native way."
       (w32-shell-execute
        "open"
        (replace-regexp-in-string "/" "\\" fPath t t)))
-    (defun zy--wsl-open (file)
-      "Open FILE in Windows."
-      (shell-command (format "wslview $(wslpath -w \"%s\")" file)))
     (defun zy--linux-open (file)
       "Open FILE in Linux native way."
-      (let ((process-connection-type nil))
-        (start-process "" nil "xdg-open" file)))
-    (fset 'zy--native-open
+      (let ((process-connection-type nil)
+            (command (if (zy-wsl-p) "wslview" "xdg-open")))
+        (start-process "" nil command file)))
+    (fset 'zy-native-open
       (cond
        (zy-*windows* #'zy--windows-open)
-       ((zy-wsl-p) #'zy--wsl-open)
        (zy-*linux* #'zy--linux-open)))
 
     ;; The interactive command.
@@ -397,7 +386,7 @@ Open file based on the OS's preference.
                         t
                       (y-or-n-p "Open more than 5 files? "))))
         (when do-it
-          (mapc #'zy--native-open flist)))))
+          (mapc #'zy-native-open flist)))))
 #+end_src
 
 ** Key-Binding
@@ -1970,7 +1959,7 @@ Inserting and managing org-cite style citations with citar.
            :branch "main")
     (setq citar-bibliography zy-bib-files
           citar-library-paths `(,zy-bib-prints-dir)
-          citar-file-open-function #'zy--native-open)
+          citar-file-open-function #'zy-native-open)
     (general-define-key
      "C-c c" #'citar-insert-citation
      "C-c C" #'citar-insert-preset))
