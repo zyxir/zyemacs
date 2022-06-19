@@ -3,6 +3,7 @@
 
 ;; Path utilities.
 
+;;;###autoload
 (defun zo-path-type (path &optional default)
   "Return the type of PATH.
 

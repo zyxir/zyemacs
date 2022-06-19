@@ -1909,11 +1909,7 @@ Ebib as the bibliography management interface.
 #+begin_src emacs-lisp
   (zb init-ebib
     :when zy$-use-zybox-p
-    :pkg '(ebib
-           :type git
-           :host github
-           :repo "zyxir/ebib"
-           :branch master)
+    :pkg 'ebib
     (general-define-key
      :keymaps 'zy-leader-map
      "e" 'ebib)
