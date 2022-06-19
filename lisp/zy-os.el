@@ -3,7 +3,7 @@
 
 ;; Path utilities.
 
-(defun zo--path-type (path &optional default)
+(defun zo-path-type (path &optional default)
   "Return the type of PATH.
 
 The algorithm to decide its type is:
@@ -42,11 +42,12 @@ return `unix'."
 	    (string-trim-right (buffer-string)))))
   zo--wsl-root)
 
+;;;###autoload
 (defun zo-path-to-win (path)
   "Convert WSL path PATH to a Windows path.
 
 Relative path would be converted to absolute ones."
-  (if (equal (zo--path-type path) 'win)
+  (if (equal (zo-path-type path) 'win)
       path
     (let ()
       ;; Convert path to absolute.

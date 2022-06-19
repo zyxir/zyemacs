@@ -722,7 +722,35 @@ WSL (Windows subsystem for Linux) specific settings.
 
 #+begin_src emacs-lisp
   (zb init-wsl
-    :when (zy-wsl-p))
+    :when (zy-wsl-p)
+    ;; Make process related functions call Windows commands normally.
+
+    (defun zy-wsl-win-command-p (command)
+      "Return if COMMAND is a Windows command."
+      (or (equal command "wslview")
+          (string-match-p ".exe" command)))
+
+    (defun zy-wsl-arg-convert (program args)
+      "Convert Unix paths in ARGS.
+
+  If PROGRAM is a Windows command, convert all path-like argument
+  in ARGS to Windows paths."
+      (if (zy-wsl-win-command-p program)
+          (mapcar
+           (lambda (arg)
+             (if (equal (zo-path-type arg 'not-a-path) 'unix)
+                 (zo-path-to-win arg)
+               arg))
+           args)
+        args))
+
+    (defun zy-wsl-call-process-ad
+        (call-process program &optional infile destination display
+                      &rest args)
+      "Call `call-process' with its arguments filtered for WSL."
+      (setq args (zy-wsl-arg-convert program args))
+      (apply call-process program infile destination display args))
+    (advice-add 'call-process :around #'zy-wsl-call-process-ad))
 #+end_src
 
 ** Zybox
@@ -1906,7 +1934,7 @@ Ebib as the bibliography management interface.
           ebib-uniquify-keys t
           ebib-file-associations (mapcar
                                   (lambda (ext)
-                                    `(,ext . ,zy--native-open-command))
+                                    `(,ext . "wslview"))
                                   '("pdf" "epub" "caj" "html"))
           ebib-file-search-dirs `(,zy-bib-prints-dir)
           ebib-notes-storage 'multiple-notes-per-file
