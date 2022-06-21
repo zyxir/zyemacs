@@ -360,9 +360,8 @@ Open file based on the OS's preference.
        (replace-regexp-in-string "/" "\\" fPath t t)))
     (defun zy--linux-open (file)
       "Open FILE in Linux native way."
-      (let ((process-connection-type nil)
-            (command (if (zy-wsl-p) "wslview" "xdg-open")))
-        (start-process "" nil command file)))
+      (let ((command (if (zy-wsl-p) "wslview" "xdg-open")))
+        (call-process command nil nil nil file)))
     (fset 'zy-native-open
       (cond
        (zy-*windows* #'zy--windows-open)
