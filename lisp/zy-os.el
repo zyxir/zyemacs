@@ -50,21 +50,43 @@ return `unix'."
 Relative path would be converted to absolute ones."
   (if (equal (zo-path-type path) 'win)
       path
-    (let ()
-      ;; Convert path to absolute.
-      (setq path (file-truename path))
-      ;; For files in Windows filesystem.
-      (when (equal (string-match-p "/mnt/[c-z]" path) 0)
-	(setq path (replace-regexp-in-string
-		    "/mnt/\\([c-z]\\)" "\\1:" path))
-	(setq path (concat
-		    (upcase (substring path 0 1))
-		    (substring path 1 nil))))
-      ;; Replace Unix home.
-      (when (equal (string-match-p "/" path) 0)
-	(setq path (concat
-		    (zo--wsl-root)
-		    (substring path 1 nil))))
-      ;; Convert / to \\.
-      (setq path (string-replace "/" "\\" path))
-      path)))
+    ;; Convert path to absolute.
+    (setq path (file-truename path))
+    ;; For files in Windows filesystem.
+    (when (equal (string-match-p "/mnt/[c-z]" path) 0)
+      (setq path (replace-regexp-in-string
+		  "/mnt/\\([c-z]\\)" "\\1:" path))
+      (setq path (concat
+		  (upcase (substring path 0 1))
+		  (substring path 1 nil))))
+    ;; Replace Unix home.
+    (when (equal (string-match-p "/" path) 0)
+      (setq path (concat
+		  (zo--wsl-root)
+		  (substring path 1 nil))))
+    ;; Convert / to \\.
+    (setq path (string-replace "/" "\\" path))
+    path))
+
+;;;###autoload
+(defun zo-path-to-wsl (path)
+  "Convert Windows path PATH to a WSL path.
+
+Relative path would be converted to absolute ones."
+  (message "BEFORE: %s" path)
+  (if (equal (zo-path-type path) 'unix)
+      path
+    (if (equal (string-match-p "[c-z|C-Z][\\]?:\\\\" path) 0)
+	;; Convert Windows drive label.
+	(progn
+	  (setq path (concat
+		      (downcase (substring path 0 1))
+		      (substring path 1 nil)))
+	  (setq path (replace-regexp-in-string
+		      "\\([c-z]\\)[\\]?:\\\\" "/mnt/\\1/" path)))
+      ;; Convert relative path to absolute ones.
+      (setq path (expand-file-name path default-directory)))
+    ;; Convert \\ to /.
+    (setq path (string-replace "\\" "/" path))
+    (message "AFTER: %s" path)
+    path))
