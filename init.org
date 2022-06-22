@@ -427,6 +427,13 @@ Key-bindings are managed via ~general.el~, and ~which-key~ provides key hints. T
     ;; Setup which-key.
 
     (which-key-mode +1))
+
+  (zb init-zy-commands
+    "Set shortcuts for my custom commands from zy-commands.el."
+    :after-load 'init-key
+    (general-define-key
+     :keymaps 'ctl-x-4-map
+     "t" 'zy/transpose-windows))
 #+end_src
 
 ** Minibuffer
