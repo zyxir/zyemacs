@@ -1390,7 +1390,8 @@ This section is inspired by [[https://github.com/kaushalmodi][Kaushal Modi]]'s c
                :repo "bzg/org-mode")
     (setq org-attach-id-dir "_org-att"
           org-src-window-setup 'current-window
-          org-tags-column 0)
+          org-tags-column 0
+          org-format-latex-options '(:scale 1.2))
     :hook-into 'org-mode-hook
     (display-line-numbers-mode -1)
     (org-indent-mode +1)
