@@ -803,6 +803,22 @@ Zybox is the collection of my personal files.
 
 * Text Editing | 文本編輯
 
+** Eglot
+
+Eglot is an Emacs LSP client.
+
+#+begin_src emacs-lisp
+  (zb init-eglot
+    :pkg 'eglot
+    ;; Enable Eglot automatically for various modes.
+    (dolist (hook '(python-mode-hook))
+      (add-hook hook 'eglot-ensure))
+    ;; Easier keybinds.
+    (general-define-key
+     :keymaps 'eglot-mode-map
+     "<f2>" 'eglot-rename))
+#+end_src
+
 ** Incremental Search
 
 Isearch-mb is used to enable using Chinese in isearch. The package has much more
@@ -1277,6 +1293,13 @@ Change cursor color based on the current input method.
                   :keymaps 'pdf-view-mode-map
                   ;; Less confirmation on buffer revert.
                   "g" #'revert-buffer-quick)))
+#+end_src
+
+** Python
+
+#+begin_src emacs-lisp
+  (zb init-python
+    )
 #+end_src
 
 ** TeX / LaTeX
