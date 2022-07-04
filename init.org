@@ -346,6 +346,17 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
       (server-start)))
 #+end_src
 
+** Exec Path
+
+Load ~exec-path~ from shell using Purcell's package.
+
+#+begin_src emacs-lisp
+  (zb init-exec-path
+    :pkg 'exec-path-from-shell
+    (when (memq window-system '(mac ns x))
+      (exec-path-from-shell-initialize)))
+#+end_src
+
 ** External Programs
 
 Open file based on the OS's preference.
