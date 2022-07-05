@@ -152,7 +152,8 @@ I utilize the ~zb~ (Zy-Block) macro for configuration grouping. It is like a sim
   ;; With "--zy-benchmark" option, enable benchmark for all zy-blocks.
 
   (add-to-list 'command-switch-alist
-               '("--zy-benchmark" . (lambda (&rest ignored) t)))
+               '("--zy-benchmark" . (lambda (&rest ignored)
+                                      (zbch/show-result))))
   (when (member "--zy-benchmark" command-line-args)
     (push '(:benchmark . t) zb-global-flag-alist))
 #+end_src

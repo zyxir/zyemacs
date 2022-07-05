@@ -52,7 +52,40 @@ TIME is the time used to execute the body."
 
 (define-derived-mode zbch-time-list-mode
   tabulated-list-mode "Benchmark"
-  "Show times taken to execute each zy-block.")
+  "Show times taken to execute each zy-block."
+  (setq tabulated-list-format
+	[("Start time (ms)" 20 zbch-sort-by-time-since)
+	 ("Zy-block" 30 t)
+	 ("Time (ms)" 15 zbch-sort-by-time-taken)])
+  (setq tabulated-list-entries #'zbch-list-entries)
+  (tabulated-list-init-header)
+  (when (fboundp 'tablist-minor-mode)
+    (tablist-minor-mode)))
+
+(defun zbch-sort-by-time-since (entry1 entry2)
+  (< (string-to-number (elt (nth 1 entry1) 0))
+     (string-to-number (elt (nth 1 entry2) 0))))
+
+(defun zbch-sort-by-time-taken (entry1 entry2)
+  (< (string-to-number (elt (nth 1 entry1) 2))
+     (string-to-number (elt (nth 1 entry2) 2))))
+
+(defun zbch-list-entries ()
+  (cl-loop for (time-since feature time-taken) in zbch-result
+	   with order = 0
+	   do (cl-incf order)
+	   collect (list order
+			 (vector time-since
+				 (symbol-name feature)
+				 time-taken))))
+
+(defun zbch/show-result ()
+  "Show a tabular view of how long zy-blocks took to load."
+  (interactive)
+  (with-current-buffer (get-buffer-create "*Benchmark Result*")
+    (zbch-time-list-mode)
+    (tabulated-list-revert)
+    (display-buffer (current-buffer))))
 
 
 (provide 'zy-benchmark)
