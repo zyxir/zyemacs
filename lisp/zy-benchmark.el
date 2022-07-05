@@ -55,7 +55,7 @@ TIME is the time used to execute the body."
   "Show times taken to execute each zy-block."
   (setq tabulated-list-format
 	[("Start time (ms)" 20 zbch-sort-by-time-since)
-	 ("Zy-block" 30 t)
+	 ("Feature" 30 t)
 	 ("Time (ms)" 15 zbch-sort-by-time-taken)])
   (setq tabulated-list-entries #'zbch-list-entries)
   (tabulated-list-init-header)
