@@ -833,6 +833,19 @@ Eglot is an Emacs LSP client.
      "<f2>" 'eglot-rename))
 #+end_src
 
+** Flymake
+
+Display diagnostics with Flymake. Eglot use it too.
+
+#+begin_src emacs-lisp
+  (zb init-flymake
+    ;; Define keys.
+    (general-define-key
+     :keymaps 'flymake-mode-map
+     "M-n" 'flymake-goto-next-error
+     "M-p" 'flymake-goto-prev-error))
+#+end_src
+
 ** Incremental Search
 
 Isearch-mb is used to enable using Chinese in isearch. The package has much more
