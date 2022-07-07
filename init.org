@@ -833,6 +833,22 @@ Eglot is an Emacs LSP client.
      "<f2>" 'eglot-rename))
 #+end_src
 
+** Corfu and Cape
+
+Corfu enhances completion at point.
+
+#+begin_src emacs-lisp
+  (zb init-corfu
+    :pkg '(corfu cape)
+    ;; Options.
+    (setq corfu-cycle t
+          corfu-auto t)
+    ;; Enable Corfu only for certain modes.
+    (global-corfu-mode)
+    (dolist (func '(cape-file))
+      (add-to-list 'completion-at-point-functions func)))
+#+end_src
+
 ** Flymake
 
 Display diagnostics with Flymake. Eglot use it too.
