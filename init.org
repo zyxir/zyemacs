@@ -845,7 +845,8 @@ Corfu enhances completion at point.
           corfu-auto t)
     ;; Enable Corfu only for certain modes.
     (global-corfu-mode)
-    (dolist (func '(cape-file))
+    (dolist (func '(cape-file
+                    cape-symbol))
       (add-to-list 'completion-at-point-functions func)))
 #+end_src
 
