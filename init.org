@@ -1343,7 +1343,8 @@ Change cursor color based on the current input method.
 
 #+begin_src emacs-lisp
   (zb init-python
-    )
+    :pkg 'py-autopep8
+    (setq python-fill-docstring-style 'django))
 #+end_src
 
 ** TeX / LaTeX
