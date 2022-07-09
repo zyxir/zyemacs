@@ -689,18 +689,6 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     (super-save-mode +1))
 #+end_src
 
-** Table Alignment
-
-Visually align texts in tables in Markdown mode and Org mode.
-
-#+begin_src emacs-lisp
-  (zb init-align
-    :pkg 'valign
-    (dolist (hook '(org-mode-hook
-                    markdown-mode-hook))
-      (add-hook hook #'valign-mode)))
-#+end_src
-
 ** Version Control
 
 #+begin_src emacs-lisp
@@ -861,6 +849,18 @@ Display diagnostics with Flymake. Eglot use it too.
      :keymaps 'flymake-mode-map
      "M-n" 'flymake-goto-next-error
      "M-p" 'flymake-goto-prev-error))
+#+end_src
+
+** Table Alignment
+
+Visually align texts in tables in Markdown mode and Org mode.
+
+#+begin_src emacs-lisp
+  (zb init-align
+    :pkg 'valign
+    (dolist (hook '(org-mode-hook
+                    markdown-mode-hook))
+      (add-hook hook #'valign-mode)))
 #+end_src
 
 ** Incremental Search
