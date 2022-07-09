@@ -591,41 +591,6 @@ Configuring native Emacs features.
         (auto-revert-mode +1))))
 #+end_src
 
-** Project Management
-
-A project is a directory under version control. On each of my devices, I place my projects differently, thus I created the following mechanism to manage my projects.
-
-#+begin_src emacs-lisp
-  (zb init-proj
-    ;; Path of projects.
-
-    (defcustom zy$-projects-path nil
-      "Where ZyEmacs should look for projects.
-
-  This variable should be set individually on each machine."
-      :type '(repeat directory)
-      :group 'zyemacs)
-
-    ;; Easy command to refresh projects.
-
-    (defun zy/projects-refresh ()
-      "Refresh project list.
-
-  This function:
-
-  - Load `project.el'.
-
-  - Runs `project-forget-zombie-projects'.
-
-  - Runs `project-remember-projects-under' on every path of
-    `zy$-projects-path'."
-      (interactive)
-      (require 'project)
-      (project-forget-zombie-projects)
-      (dolist (path zy$-projects-path)
-        (project-remember-projects-under path))))
-#+end_src
-
 ** Restart-Emacs
 
 Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely useful for configuring Emacs.
@@ -687,30 +652,6 @@ Restart Emacs within Emacs, or open a new instance of Emacs. This is extremely u
     :pkg 'super-save
     (setq super-save-auto-save-when-idle t)
     (super-save-mode +1))
-#+end_src
-
-** Version Control
-
-#+begin_src emacs-lisp
-  ;; For native VC mode.
-
-  (zb init-vc
-    ;; Diff-hl highlight changed zones in the left fringe.
-    :pkg 'diff-hl
-    (dolist (hook '(text-mode-hook prog-mode-hook))
-      (add-hook hook
-                (lambda ()
-                  (diff-hl-mode +1)
-                  (diff-hl-flydiff-mode +1)))))
-
-  ;; Simplify git operations with magit.
-
-  (zb init-magit
-    :pkg 'magit
-    (general-define-key
-     :keymaps 'ctl-x-map
-     "g" 'magit-status
-     "M-g" 'magit-dispatch))
 #+end_src
 
 ** WSL
@@ -803,23 +744,7 @@ Zybox is the collection of my personal files.
         (customize-save-variable 'zy$-use-zybox-p nil))))
 #+end_src
 
-* Text Editing | 文本編輯
-
-** Eglot
-
-Eglot is an Emacs LSP client.
-
-#+begin_src emacs-lisp
-  (zb init-eglot
-    :pkg 'eglot
-    ;; Enable Eglot automatically for various modes.
-    (dolist (hook '(python-mode-hook))
-      (add-hook hook 'eglot-ensure))
-    ;; Easier keybinds.
-    (general-define-key
-     :keymaps 'eglot-mode-map
-     "<f2>" 'eglot-rename))
-#+end_src
+* Development | 開發
 
 ** Corfu and Cape
 
@@ -838,6 +763,22 @@ Corfu enhances completion at point.
       (add-to-list 'completion-at-point-functions func)))
 #+end_src
 
+** Eglot
+
+Eglot is an Emacs LSP client.
+
+#+begin_src emacs-lisp
+  (zb init-eglot
+    :pkg 'eglot
+    ;; Enable Eglot automatically for various modes.
+    (dolist (hook '(python-mode-hook))
+      (add-hook hook 'eglot-ensure))
+    ;; Easier keybinds.
+    (general-define-key
+     :keymaps 'eglot-mode-map
+     "<f2>" 'eglot-rename))
+#+end_src
+
 ** Flymake
 
 Display diagnostics with Flymake. Eglot use it too.
@@ -850,6 +791,67 @@ Display diagnostics with Flymake. Eglot use it too.
      "M-n" 'flymake-goto-next-error
      "M-p" 'flymake-goto-prev-error))
 #+end_src
+
+** Project Management
+
+A project is a directory under version control. On each of my devices, I place my projects differently, thus I created the following mechanism to manage my projects.
+
+#+begin_src emacs-lisp
+  (zb init-proj
+    ;; Path of projects.
+
+    (defcustom zy$-projects-path nil
+      "Where ZyEmacs should look for projects.
+
+  This variable should be set individually on each machine."
+      :type '(repeat directory)
+      :group 'zyemacs)
+
+    ;; Easy command to refresh projects.
+
+    (defun zy/projects-refresh ()
+      "Refresh project list.
+
+  This function:
+
+  - Load `project.el'.
+
+  - Runs `project-forget-zombie-projects'.
+
+  - Runs `project-remember-projects-under' on every path of
+    `zy$-projects-path'."
+      (interactive)
+      (require 'project)
+      (project-forget-zombie-projects)
+      (dolist (path zy$-projects-path)
+        (project-remember-projects-under path))))
+#+end_src
+
+** Version Control
+
+#+begin_src emacs-lisp
+  ;; For native VC mode.
+
+  (zb init-vc
+    ;; Diff-hl highlight changed zones in the left fringe.
+    :pkg 'diff-hl
+    (dolist (hook '(text-mode-hook prog-mode-hook))
+      (add-hook hook
+                (lambda ()
+                  (diff-hl-mode +1)
+                  (diff-hl-flydiff-mode +1)))))
+
+  ;; Simplify git operations with magit.
+
+  (zb init-magit
+    :pkg 'magit
+    (general-define-key
+     :keymaps 'ctl-x-map
+     "g" 'magit-status
+     "M-g" 'magit-dispatch))
+#+end_src
+
+* Text Editing | 文本編輯
 
 ** Table Alignment
 
