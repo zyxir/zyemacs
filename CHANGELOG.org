@@ -2,9 +2,10 @@
 
 * Version 3.x
 
-** =3.0.0= - Unreleased
+My emacs configuration evolves fast, so the changelog is no longer maintained.
 
 - Fully rewritten in the style of literate programming.
+- Function blocks managed by zy-block, my own utility of configuration sectioning.
 - Many unnecessary packages removed in persuit of minimalism.
 - A fine-grained font system.
 
