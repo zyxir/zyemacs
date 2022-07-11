@@ -347,6 +347,35 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
       (server-start)))
 #+end_src
 
+** Eshell
+
+#+begin_src emacs-lisp
+  (zb init-eshell
+    :after-load "eshell"
+    ;; Configuration.
+    (setq eshell-scroll-to-bottom-on-input 'all
+          eshell-error-if-no-glob t
+          eshell-hist-ignoredups t
+          eshell-save-history-on-exit t
+          eshell-prefer-lisp-functions nil
+          eshell-destroy-buffer-when-process-dies t)
+    ;; Visual executables.
+    (dolist (command '("ssh" "tail" "top"))
+      (add-to-list 'eshell-visual-commands command))
+    ;; Aliases.
+    (eshell/alias "e" "find-file $1")
+    (eshell/alias "emacs" "find-file $1")
+    (eshell/alias "ff" "find-file $1")
+    (eshell/alias "ee" "find-file-other-window $1")
+    (eshell/alias "ffow" "find-file-other-window $1")
+    ;; Clear command.
+    (defun eshell/clear()
+      "Clear the eshell buffer."
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (eshell-send-input))))
+#+end_src
+
 ** Exec Path
 
 Load ~exec-path~ from shell via Purcell's package.
@@ -1392,7 +1421,7 @@ Change cursor color based on the current input method.
            reftex-enable-partial-scans t
            reftex-save-parse-info t
            reftex-use-multiple-selection-buffers t)
-     (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+     (add-hook 'LaTeX-mode-hook 'turn-on-reftex))
 #+end_src
 
 *** PDF Preview
