@@ -351,29 +351,32 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
 
 #+begin_src emacs-lisp
   (zb init-eshell
-    :after-load "eshell"
-    ;; Configuration.
-    (setq eshell-scroll-to-bottom-on-input 'all
-          eshell-error-if-no-glob t
-          eshell-hist-ignoredups t
-          eshell-save-history-on-exit t
-          eshell-prefer-lisp-functions nil
-          eshell-destroy-buffer-when-process-dies t)
-    ;; Visual executables.
-    (dolist (command '("ssh" "tail" "top"))
-      (add-to-list 'eshell-visual-commands command))
-    ;; Aliases.
-    (eshell/alias "e" "find-file $1")
-    (eshell/alias "emacs" "find-file $1")
-    (eshell/alias "ff" "find-file $1")
-    (eshell/alias "ee" "find-file-other-window $1")
-    (eshell/alias "ffow" "find-file-other-window $1")
-    ;; Clear command.
-    (defun eshell/clear()
-      "Clear the eshell buffer."
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (eshell-send-input))))
+    (:after-load
+     'eshell
+     ;; Configuration.
+     (setq eshell-scroll-to-bottom-on-input 'all
+           eshell-error-if-no-glob t
+           eshell-hist-ignoredups t
+           eshell-save-history-on-exit t
+           eshell-prefer-lisp-functions nil
+           eshell-destroy-buffer-when-process-dies t)
+     ;; Clear command.
+     (defun eshell/clear()
+       "Clear the eshell buffer."
+       (let ((inhibit-read-only t))
+         (erase-buffer)
+         (eshell-send-input))))
+    (:hook-into
+     'eshell-mode-hook
+     ;; Visual executables.
+     (dolist (command '("ssh" "tail" "top"))
+       (add-to-list 'eshell-visual-commands command))
+     ;; Aliases.
+     (eshell/alias "e" "find-file $1")
+     (eshell/alias "emacs" "find-file $1")
+     (eshell/alias "ff" "find-file $1")
+     (eshell/alias "ee" "find-file-other-window $1")
+     (eshell/alias "ffow" "find-file-other-window $1")))
 #+end_src
 
 ** Exec Path
