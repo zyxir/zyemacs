@@ -368,6 +368,9 @@ Recursively update all autoloads under lisp and site-lisp directories, and load 
          (eshell-send-input))))
     (:hook-into
      'eshell-mode-hook
+     ;; Disable Corfu completion.
+     (setq-local corfu-auto nil)
+     (corfu-mode)
      ;; Visual executables.
      (dolist (command '("ssh" "tail" "top"))
        (add-to-list 'eshell-visual-commands command))
@@ -593,7 +596,9 @@ Configuring native Emacs features.
     (setq
      auto-save-default nil
      disabled-command-function nil
-     frame-title-format '("" "ZyEmacs" " [%b]")
+     frame-title-format (if (zy-wsl-p)
+                            '("" "ZyEmacs on WSL" " [%b]")
+                          '("" "ZyEmacs" " [%b]"))
      inhibit-compacting-font-caches t
      make-backup-files nil
      project-switch-commands '((project-find-file "Find file" "f")
